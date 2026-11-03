@@ -86,6 +86,7 @@ def calculate_technical_indicators(history: pd.DataFrame) -> pd.DataFrame:
 
     frame["SMA_20"] = close.rolling(20, min_periods=20).mean()
     frame["SMA_50"] = close.rolling(50, min_periods=50).mean()
+    frame["SMA_200"] = close.rolling(200, min_periods=200).mean()
     frame["EMA_12"] = close.ewm(span=12, adjust=False, min_periods=12).mean()
     frame["EMA_26"] = close.ewm(span=26, adjust=False, min_periods=26).mean()
     frame["MACD"] = frame["EMA_12"] - frame["EMA_26"]
