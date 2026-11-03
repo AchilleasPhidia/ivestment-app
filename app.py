@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, time
 from html import escape
+import hashlib
 import importlib
 from pathlib import Path
 from urllib.parse import quote, urlsplit
@@ -45,7 +46,8 @@ from finance_data import (
     search_tickers,
     fetch_ticker_news,
 )
-from forecast_store import record_forecast, update_forecast_outcomes
+from forecast_store import load_forecasts, record_forecast, update_forecast_outcomes
+from powerbi_export import build_powerbi_workbook, headline_table, history_table, profile_table
 from portfolio_store import (
     add_transaction,
     calculate_positions,
@@ -1287,6 +1289,169 @@ def render_transaction_ledger(transactions: pd.DataFrame, access_token: str) -> 
             st.download_button("Export CSV", data=transactions.to_csv(index=False).encode("utf-8"), file_name="portfolio_transactions.csv", mime="text/csv", key="export_transactions")
 
 
+def clear_powerbi_search_choice() -> None:
+    st.session_state.pop("powerbi_search_choice", None)
+
+
+def add_powerbi_export_ticker(symbol: str) -> None:
+    symbol = str(symbol or "").strip().upper()
+    if not symbol:
+        return
+    extras = list(st.session_state.get("powerbi_extra_tickers", []))
+    if symbol not in extras:
+        extras.append(symbol)
+    st.session_state["powerbi_extra_tickers"] = extras
+    selected = list(st.session_state.get("powerbi_export_tickers", []))
+    if symbol not in selected:
+        selected.append(symbol)
+    st.session_state["powerbi_export_tickers"] = selected
+
+
+def render_powerbi_export(
+    transactions: pd.DataFrame,
+    holdings: list[dict],
+    access_token: str,
+    region_name: str,
+    base_currency: str,
+) -> None:
+    """Fetch requested Yahoo data on demand and offer a private local workbook download."""
+    ledger_tickers = sorted(
+        {
+            str(value).strip().upper()
+            for value in transactions.get("ticker", [])
+            if pd.notna(value) and str(value).strip()
+        }
+    )
+    holding_tickers = sorted({str(item.get("ticker") or "").strip().upper() for item in holdings if item.get("ticker")})
+    period_labels = {"6 months": "6mo", "1 year": "1y", "2 years": "2y", "5 years": "5y"}
+
+    with st.expander("Export a private workbook for Power BI", expanded=False):
+        st.caption("Choose which Yahoo data to fetch now, then download an Excel snapshot for Power BI Desktop. The selected region’s benchmark is always included. Your browser controls where the file is saved; daily bar dates vary by market.")
+        extra_tickers = list(st.session_state.get("powerbi_extra_tickers", []))
+        search_query = st.text_input(
+            "Add another Yahoo ticker to this export",
+            placeholder="Search a company or ticker, e.g. Microsoft or MSFT",
+            key="powerbi_search_query",
+            on_change=clear_powerbi_search_choice,
+        ).strip()
+        search_matches = search_tickers(search_query) if len(search_query) >= 2 else []
+        if search_matches is None:
+            st.caption("Yahoo ticker search is temporarily unavailable. You can still export your portfolio tickers.")
+        elif search_matches:
+            search_details = {item["symbol"]: item for item in search_matches}
+            search_cols = st.columns([3, 1])
+            with search_cols[0]:
+                selected_search_ticker = st.selectbox(
+                    "Choose a Yahoo result",
+                    options=list(search_details),
+                    format_func=lambda symbol: f"{symbol} · {search_details[symbol]['name']} · {search_details[symbol]['exchange']}",
+                    key="powerbi_search_choice",
+                )
+            with search_cols[1]:
+                st.button(
+                    "Add ticker",
+                    key="add_powerbi_export_ticker",
+                    on_click=add_powerbi_export_ticker,
+                    args=(selected_search_ticker,),
+                    use_container_width=True,
+                )
+        elif len(search_query) >= 2:
+            st.caption("No matching Yahoo Finance securities found.")
+
+        with st.form("powerbi_export_options"):
+            ticker_options = sorted(set([*ledger_tickers, *extra_tickers]))
+            default_tickers = holding_tickers or ledger_tickers
+            default_tickers = sorted(set([*default_tickers, *extra_tickers]))
+            export_tickers = st.multiselect(
+                "Tickers to fetch from Yahoo Finance",
+                ticker_options,
+                default=default_tickers,
+                key="powerbi_export_tickers",
+                help="The workbook always includes your full private transaction ledger. Yahoo price history and headlines are fetched only for the tickers selected here.",
+            )
+            export_cols = st.columns([1, 1, 1])
+            with export_cols[0]:
+                price_range = st.selectbox("Daily price history", list(period_labels), index=1, key="powerbi_export_period")
+            with export_cols[1]:
+                include_headlines = st.checkbox("Fetch ticker headlines", value=True, key="powerbi_export_include_news")
+            with export_cols[2]:
+                headline_count = st.selectbox("Headlines per ticker", [5, 10, 20], index=1, key="powerbi_export_headline_count", disabled=not include_headlines)
+            prepare = st.form_submit_button("Fetch Yahoo data and prepare workbook", type="primary", use_container_width=True)
+
+        transaction_signature = hashlib.sha256(
+            transactions.to_json(orient="split", date_format="iso").encode("utf-8")
+        ).hexdigest()
+        settings_signature = hashlib.sha256(
+            f"{transaction_signature}|{price_range}|{include_headlines}|{headline_count}|{','.join(export_tickers)}|{region_name}|{base_currency}".encode("utf-8")
+        ).hexdigest()
+        if st.session_state.get("powerbi_export_signature") not in (None, settings_signature):
+            st.session_state.pop("powerbi_export_bytes", None)
+            st.session_state.pop("powerbi_export_signature", None)
+            st.session_state.pop("powerbi_exported_at", None)
+
+        if prepare:
+            try:
+                with st.spinner("Fetching the selected Yahoo price history and headlines…"):
+                    price_frames = [
+                        history_table(symbol, "Equity", fetch_history(symbol, period=period_labels[price_range], adjusted=True))
+                        for symbol in export_tickers
+                    ]
+                    benchmark_symbol = next(iter(MARKET_REGIONS[region_name]["benchmarks"]))
+                    benchmark_history = fetch_history(benchmark_symbol, period=period_labels[price_range], adjusted=True)
+                    price_frames.append(history_table(benchmark_symbol, "Market benchmark", benchmark_history))
+                    price_history = pd.concat(price_frames, ignore_index=True) if price_frames else pd.DataFrame()
+
+                    profile_symbols = list(dict.fromkeys([*export_tickers, benchmark_symbol]))
+                    profile_frames = [profile_table(symbol, fetch_ticker_metadata(symbol)) for symbol in profile_symbols]
+                    profiles = pd.concat(profile_frames, ignore_index=True) if profile_frames else pd.DataFrame()
+
+                    headline_frames = []
+                    if include_headlines:
+                        for symbol in export_tickers:
+                            headline_frames.append(headline_table(symbol, fetch_ticker_news(symbol, count=int(headline_count))))
+                    headlines = pd.concat(headline_frames, ignore_index=True) if headline_frames else pd.DataFrame()
+                    forecast_rows = load_forecasts(access_token)
+                    generated_at = london_now()
+                    workbook_bytes = build_powerbi_workbook(
+                        transactions=transactions,
+                        holdings=[{**item, "base_currency": base_currency} for item in holdings],
+                        price_history=price_history,
+                        headlines=headlines,
+                        profiles=profiles,
+                        forecasts=forecast_rows,
+                        about={
+                            "Exported at · London": generated_at.isoformat(timespec="seconds"),
+                            "Market region": region_name,
+                            "Portfolio base currency": base_currency,
+                            "Yahoo price history": price_range,
+                            "Yahoo tickers selected": ", ".join(export_tickers) or "None",
+                            "Yahoo headlines included": "Yes" if include_headlines else "No",
+                            "Snapshot note": "A point-in-time export. Yahoo price history uses auto-adjusted daily OHLC bars; refresh by preparing a new workbook.",
+                        },
+                    )
+                st.session_state["powerbi_export_bytes"] = workbook_bytes
+                st.session_state["powerbi_export_signature"] = settings_signature
+                st.session_state["powerbi_exported_at"] = generated_at.strftime("%d %b %Y · %H:%M London")
+                st.success("Workbook prepared. Download it below, then import it in Power BI using Get data → Excel workbook.")
+            except ValueError as error:
+                st.error(f"Could not prepare the private export: {error}")
+                return
+
+        if (
+            st.session_state.get("powerbi_export_bytes")
+            and st.session_state.get("powerbi_export_signature") == settings_signature
+        ):
+            st.download_button(
+                "Download Power BI workbook (.xlsx)",
+                data=st.session_state["powerbi_export_bytes"],
+                file_name="market_brief_powerbi_export.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="download_powerbi_workbook",
+                use_container_width=True,
+            )
+            st.caption(f"Snapshot prepared {st.session_state.get('powerbi_exported_at', '')}. The workbook contains only this signed-in user’s transactions, holdings and saved forecasts.")
+
+
 def render_portfolio(region_name: str, access_token: str) -> None:
     st.markdown('<div class="eyebrow">Your investments</div>', unsafe_allow_html=True)
     st.markdown('<h2 style="margin:0 0 .3rem">Portfolio command centre</h2>', unsafe_allow_html=True)
@@ -1364,6 +1529,7 @@ def render_portfolio(region_name: str, access_token: str) -> None:
     position_rows = position_frame.to_dict(orient="records")
     open_rows = [position for position in position_rows if float(position["shares"]) > 1e-8]
     if not open_rows:
+        render_powerbi_export(transactions, [], access_token, region_name, base_currency)
         render_empty("No open positions yet. Record your first buy above. Completed sales remain in Trade history.")
         realized = sum(float(position["realized_pnl"]) for position in position_rows if position.get("realized_known", True))
         if position_rows:
@@ -1466,6 +1632,8 @@ def render_portfolio(region_name: str, access_token: str) -> None:
         st.caption("An opening balance has no recorded purchase cost. Add or edit its cost in the transaction ledger before relying on portfolio P&L.")
     if realized_total is None and realized_rows:
         st.caption("Realised P&L is unavailable for one or more sales because the original lot cost or FX rate is missing.")
+
+    render_powerbi_export(transactions, active_positions, access_token, region_name, base_currency)
 
     portfolio_history = portfolio_value_history(transactions, active_positions, historical_prices, base_currency)
     view_tabs = st.tabs(["Portfolio value", "Allocation", "Holdings table"])
