@@ -10,6 +10,7 @@ from uuid import uuid4
 
 import pandas as pd
 
+from user_access import supabase_data_request
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 PORTFOLIO_PATH = DATA_DIR / "portfolio.json"
@@ -171,32 +172,18 @@ def normalize_transactions(frame: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=TRANSACTION_COLUMNS)
 
 
-def load_transactions() -> pd.DataFrame:
-    """Load the trade ledger, presenting old aggregate holdings as opening balances."""
-    if TRANSACTIONS_PATH.exists():
-        try:
-            records = json.loads(TRANSACTIONS_PATH.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as error:
-            raise ValueError("The transaction ledger could not be read. The file has been left unchanged.") from error
-        if not isinstance(records, list):
-            raise ValueError("The transaction ledger format is not a list. The file has been left unchanged.")
-        return normalize_transactions(pd.DataFrame(records))
-
-    legacy = load_portfolio()
-    rows = [
-        {
-            "id": f"opening-{index + 1}",
-            "date": "",
-            "ticker": str(row["ticker"]),
-            "action": "Opening",
-            "shares": float(row["shares"]),
-            "price": float(row["average_cost"]),
-            "fees": 0.0,
-            "notes": "Imported from existing holdings; original purchase date is unknown.",
-        }
-        for index, (_, row) in enumerate(legacy.iterrows())
-    ]
-    return normalize_transactions(pd.DataFrame(rows, columns=TRANSACTION_COLUMNS))
+def load_transactions(access_token: str) -> pd.DataFrame:
+    """Load only the signed-in user's private ledger from Supabase."""
+    records = supabase_data_request(
+        "GET",
+        "portfolio_transactions",
+        access_token,
+        params={"select": "id,trade_date,ticker,action,shares,price,fees,notes", "order": "trade_date.asc.nullsfirst"},
+    )
+    if not isinstance(records, list):
+        raise ValueError("The private transaction ledger returned an unexpected response.")
+    frame = pd.DataFrame(records).rename(columns={"trade_date": "date"})
+    return normalize_transactions(frame)
 
 
 def calculate_positions(frame: pd.DataFrame) -> pd.DataFrame:
@@ -327,13 +314,28 @@ def calculate_xirr(
     return (low + high) / 2
 
 
-def save_transactions(frame: pd.DataFrame) -> pd.DataFrame:
+def save_transactions(frame: pd.DataFrame, access_token: str) -> pd.DataFrame:
     clean = normalize_transactions(frame)
     calculate_positions(clean)  # Validate all sells before writing.
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    temporary_path = TRANSACTIONS_PATH.with_suffix(".tmp")
-    temporary_path.write_text(clean.to_json(orient="records", indent=2), encoding="utf-8")
-    temporary_path.replace(TRANSACTIONS_PATH)
+    records = [
+        {
+            "id": row["id"],
+            "trade_date": row["date"] or None,
+            "ticker": row["ticker"],
+            "action": row["action"],
+            "shares": float(row["shares"]),
+            "price": float(row["price"]),
+            "fees": float(row["fees"]),
+            "notes": row["notes"],
+        }
+        for row in clean.to_dict(orient="records")
+    ]
+    supabase_data_request(
+        "POST",
+        "rpc/replace_my_portfolio_transactions",
+        access_token,
+        payload={"p_rows": records},
+    )
     return clean
 
 
@@ -345,8 +347,9 @@ def add_transaction(
     fees: float = 0.0,
     date: str = "",
     notes: str = "",
+    access_token: str = "",
 ) -> pd.DataFrame:
-    current = load_transactions()
+    current = load_transactions(access_token)
     addition = pd.DataFrame(
         [
             {
@@ -361,18 +364,42 @@ def add_transaction(
             }
         ]
     )
-    return save_transactions(pd.concat([current, addition], ignore_index=True))
+    candidate = normalize_transactions(pd.concat([current, addition], ignore_index=True))
+    calculate_positions(candidate)  # Reject a sale that exceeds the currently held shares.
+    row = candidate.iloc[-1].to_dict()
+    supabase_data_request(
+        "POST",
+        "portfolio_transactions",
+        access_token,
+        payload={
+            "id": row["id"],
+            "trade_date": row["date"] or None,
+            "ticker": row["ticker"],
+            "action": row["action"],
+            "shares": float(row["shares"]),
+            "price": float(row["price"]),
+            "fees": float(row["fees"]),
+            "notes": row["notes"],
+        },
+    )
+    return load_transactions(access_token)
 
 
-def load_watchlist() -> list[str]:
-    if not WATCHLIST_PATH.exists():
+def load_watchlist(access_token: str) -> list[str]:
+    records = supabase_data_request(
+        "GET",
+        "user_settings",
+        access_token,
+        params={"select": "watchlist", "limit": "1"},
+    )
+    if not isinstance(records, list) or not records:
+        return DEFAULT_WATCHLIST.copy()
+    saved = records[0].get("watchlist")
+    if not isinstance(saved, list):
         return DEFAULT_WATCHLIST.copy()
     try:
-        saved = json.loads(WATCHLIST_PATH.read_text(encoding="utf-8"))
-        if not isinstance(saved, list):
-            return DEFAULT_WATCHLIST.copy()
         return normalize_watchlist(saved)
-    except (OSError, json.JSONDecodeError, ValueError, TypeError):
+    except (ValueError, TypeError):
         return DEFAULT_WATCHLIST.copy()
 
 
@@ -391,8 +418,12 @@ def normalize_watchlist(values: list[object]) -> list[str]:
     return tickers
 
 
-def save_watchlist(values: list[object]) -> list[str]:
+def save_watchlist(values: list[object], access_token: str) -> list[str]:
     tickers = normalize_watchlist(values)
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    WATCHLIST_PATH.write_text(json.dumps(tickers, indent=2), encoding="utf-8")
+    supabase_data_request(
+        "POST",
+        "rpc/replace_my_watchlist",
+        access_token,
+        payload={"p_symbols": tickers},
+    )
     return tickers

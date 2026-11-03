@@ -1,37 +1,30 @@
-"""Local storage and outcome tracking for forecasts recorded by the user."""
+"""Per-user storage and outcome tracking for forecasts recorded in Supabase."""
 
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 import pandas as pd
 
-from portfolio_store import DATA_DIR
+from user_access import supabase_data_request
 
 
-FORECAST_LOG_PATH = DATA_DIR / "forecast_log.json"
 LONDON = ZoneInfo("Europe/London")
 
 
-def load_forecasts() -> list[dict[str, Any]]:
-    if not FORECAST_LOG_PATH.exists():
+def load_forecasts(access_token: str) -> list[dict[str, Any]]:
+    records = supabase_data_request(
+        "GET",
+        "user_forecasts",
+        access_token,
+        params={"select": "id,ticker,created_at,origin_date,target_date,horizon,lookback,method,confidence,spot,median,lower,upper,actual,actual_date", "order": "created_at.desc"},
+    )
+    if not isinstance(records, list):
         return []
-    try:
-        saved = json.loads(FORECAST_LOG_PATH.read_text(encoding="utf-8"))
-        return [item for item in saved if isinstance(item, dict)] if isinstance(saved, list) else []
-    except (OSError, json.JSONDecodeError):
-        return []
-
-
-def _save_forecasts(records: list[dict[str, Any]]) -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    temporary = FORECAST_LOG_PATH.with_suffix(".tmp")
-    temporary.write_text(json.dumps(records, indent=2), encoding="utf-8")
-    temporary.replace(FORECAST_LOG_PATH)
+    return [item for item in records if isinstance(item, dict)]
 
 
 def record_forecast(
@@ -39,13 +32,14 @@ def record_forecast(
     origin_date: object,
     horizon: int,
     forecast: dict[str, Any],
+    access_token: str,
 ) -> tuple[dict[str, Any], bool]:
     """Store a unique ticker/date/horizon/model forecast for later evaluation."""
     symbol = ticker.strip().upper()
     origin = pd.Timestamp(origin_date).date().isoformat()
     target = pd.Timestamp(forecast["future_date"]).date().isoformat()
     model = str(forecast["method"])
-    records = load_forecasts()
+    records = load_forecasts(access_token)
     existing = next(
         (
             item
@@ -63,6 +57,7 @@ def record_forecast(
         return existing, False
 
     record = {
+        "id": uuid4().hex,
         "ticker": symbol,
         "created_at": datetime.now(timezone.utc).astimezone(LONDON).isoformat(timespec="seconds"),
         "origin_date": origin,
@@ -78,24 +73,28 @@ def record_forecast(
         "actual": None,
         "actual_date": None,
     }
-    records.append(record)
-    _save_forecasts(records)
-    return record, True
+    was_added = supabase_data_request(
+        "POST",
+        "rpc/insert_my_forecast",
+        access_token,
+        payload={"p_row": record},
+    )
+    return record, bool(was_added)
 
 
-def update_forecast_outcomes(ticker: str, history: pd.DataFrame) -> list[dict[str, Any]]:
+def update_forecast_outcomes(ticker: str, history: pd.DataFrame, access_token: str) -> list[dict[str, Any]]:
     """Resolve due forecasts using the first available daily bar on/after target date."""
     symbol = ticker.strip().upper()
     if history is None or history.empty or "Close" not in history:
-        return [item for item in load_forecasts() if item.get("ticker") == symbol]
+        return [item for item in load_forecasts(access_token) if item.get("ticker") == symbol]
 
     close = pd.to_numeric(history["Close"], errors="coerce").dropna()
     available = [(pd.Timestamp(date).date().isoformat(), float(price)) for date, price in close.items()]
     if not available:
-        return [item for item in load_forecasts() if item.get("ticker") == symbol]
+        return [item for item in load_forecasts(access_token) if item.get("ticker") == symbol]
 
-    records = load_forecasts()
-    changed = False
+    records = load_forecasts(access_token)
+    changed: list[dict[str, Any]] = []
     for item in records:
         if item.get("ticker") != symbol or item.get("actual") is not None:
             continue
@@ -106,7 +105,13 @@ def update_forecast_outcomes(ticker: str, history: pd.DataFrame) -> list[dict[st
         actual_date, actual_price = result
         item["actual_date"] = actual_date
         item["actual"] = actual_price
-        changed = True
-    if changed:
-        _save_forecasts(records)
+        changed.append(item)
+    for item in changed:
+        supabase_data_request(
+            "PATCH",
+            "user_forecasts",
+            access_token,
+            params={"id": f"eq.{item['id']}"},
+            payload={"actual_date": item["actual_date"], "actual": item["actual"]},
+        )
     return [item for item in records if item.get("ticker") == symbol]

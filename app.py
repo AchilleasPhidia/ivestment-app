@@ -18,10 +18,14 @@ from plotly.subplots import make_subplots
 import finance_data as finance_data_module
 import market_analysis as market_analysis_module
 import portfolio_store as portfolio_store_module
+import forecast_store as forecast_store_module
+import user_access as user_access_module
 
 finance_data_module = importlib.reload(finance_data_module)
 market_analysis_module = importlib.reload(market_analysis_module)
+user_access_module = importlib.reload(user_access_module)
 portfolio_store_module = importlib.reload(portfolio_store_module)
+forecast_store_module = importlib.reload(forecast_store_module)
 
 from market_analysis import (
     build_daily_brief,
@@ -42,17 +46,16 @@ from finance_data import (
 )
 from forecast_store import record_forecast, update_forecast_outcomes
 from portfolio_store import (
-    TRANSACTIONS_PATH,
     add_transaction,
     calculate_positions,
     calculate_xirr,
-    load_portfolio,
     load_transactions,
     load_watchlist,
     normalize_watchlist,
     save_transactions,
     save_watchlist,
 )
+from user_access import logout_user, render_access_gate
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -689,16 +692,16 @@ def ticker_update(symbol: str, benchmark_move: float | None) -> dict | None:
     }
 
 
-def render_watchlist(region_name: str, benchmarks: list[dict]) -> None:
+def render_watchlist(region_name: str, benchmarks: list[dict], access_token: str) -> None:
     st.markdown('<div class="section-label">Personal watchlist</div>', unsafe_allow_html=True)
-    st.caption("Your watchlist is stored locally in data/watchlist.json. Enter Yahoo Finance symbols separated by commas.")
-    tickers = load_watchlist()
+    st.caption("This watchlist is private to your signed-in account. Enter Yahoo Finance symbols separated by commas.")
+    tickers = load_watchlist(access_token)
     with st.form("watchlist_form"):
         ticker_text = st.text_input("Watchlist tickers", value=", ".join(tickers), placeholder="AAPL, MSFT, LLOY.L")
         save_watchlist_clicked = st.form_submit_button("Save watchlist")
     if save_watchlist_clicked:
         try:
-            tickers = save_watchlist(normalize_watchlist(ticker_text.split(",")))
+            tickers = save_watchlist(normalize_watchlist(ticker_text.split(",")), access_token)
             st.success("Watchlist saved.")
         except ValueError as error:
             st.error(str(error))
@@ -814,7 +817,7 @@ def forecast_figure(history: pd.DataFrame, forecast: dict) -> go.Figure:
     return figure
 
 
-def render_forecast_lab() -> None:
+def render_forecast_lab(access_token: str) -> None:
     st.markdown('<div class="section-label">Technical analysis & scenario estimates</div>', unsafe_allow_html=True)
     st.caption("Indicators describe historical price behaviour. Simulated ranges are scenarios, not guarantees or recommendations.")
 
@@ -898,15 +901,15 @@ def render_forecast_lab() -> None:
         st.caption("Rolling historical check: each estimate uses only earlier data and is compared with a no-change price baseline. It evaluates the point-return model, not the simulated range, and is not evidence of future performance.")
 
     st.markdown("#### Track this forecast")
-    st.caption("Record the current scenario locally. When Yahoo later has a daily bar on or after its target date, the app adds the actual result to this scorecard.")
+    st.caption("Record the current scenario to your private account. When Yahoo later has a daily bar on or after its target date, the app adds the actual result to this scorecard.")
     if st.button("Save forecast for tracking", key=f"record_forecast_{ticker}_{horizon}_{lookback}_{confidence}_{method}"):
-        _, was_added = record_forecast(ticker, forecast["history"].index[-1], horizon, forecast)
+        _, was_added = record_forecast(ticker, forecast["history"].index[-1], horizon, forecast, access_token)
         if was_added:
             st.success("Forecast saved. Its outcome will be checked when the target date has a price bar.")
         else:
             st.info("This ticker, date, horizon, and model combination is already being tracked.")
 
-    tracked = update_forecast_outcomes(ticker, history)
+    tracked = update_forecast_outcomes(ticker, history, access_token)
     resolved = [item for item in tracked if item.get("actual") is not None]
     if resolved:
         median_errors = [abs(float(item["actual"]) / float(item["median"]) - 1) * 100 for item in resolved if item.get("median")]
@@ -1072,7 +1075,7 @@ def portfolio_scenario_figure(history: pd.DataFrame, forecast: dict, confidence:
     return figure
 
 
-def render_transaction_ledger(transactions: pd.DataFrame) -> None:
+def render_transaction_ledger(transactions: pd.DataFrame, access_token: str) -> None:
     with st.expander("Trade history · edit or export", expanded=False):
         st.caption("Each purchase is kept as a separate lot. Sales use FIFO cost matching. Edit or remove rows here; sales that exceed shares held are rejected.")
         edited = st.data_editor(
@@ -1096,7 +1099,7 @@ def render_transaction_ledger(transactions: pd.DataFrame) -> None:
         with action_cols[0]:
             if st.button("Save ledger changes", key="save_transactions", type="primary"):
                 try:
-                    save_transactions(edited)
+                    save_transactions(edited, access_token)
                     st.session_state["portfolio_notice"] = "Trade history saved. Holdings and FIFO P&L have been recalculated."
                     st.rerun()
                 except ValueError as error:
@@ -1105,22 +1108,19 @@ def render_transaction_ledger(transactions: pd.DataFrame) -> None:
             st.download_button("Export CSV", data=transactions.to_csv(index=False).encode("utf-8"), file_name="portfolio_transactions.csv", mime="text/csv", key="export_transactions")
 
 
-def render_portfolio(region_name: str) -> None:
+def render_portfolio(region_name: str, access_token: str) -> None:
     st.markdown('<div class="eyebrow">Your investments</div>', unsafe_allow_html=True)
     st.markdown('<h2 style="margin:0 0 .3rem">Portfolio command centre</h2>', unsafe_allow_html=True)
-    st.caption("Track every buy and sell, see what is driving your exposure, and inspect each holding. Prices are the latest Yahoo Finance daily bars; values are indicative.")
+    st.caption("Track every buy and sell, see what is driving your exposure, and inspect each holding. Your transaction history is private to your signed-in account. Prices are the latest Yahoo Finance daily bars; values are indicative.")
 
     settings = st.columns([1, 3])
     with settings[0]:
         base_currency = st.selectbox("Summary currency", BASE_CURRENCIES, index=0, key="portfolio_base_currency")
     try:
-        transactions = load_transactions()
+        transactions = load_transactions(access_token)
     except ValueError as error:
         st.error(str(error))
         return
-    legacy_mode = not TRANSACTIONS_PATH.exists() and not load_portfolio().empty
-    if legacy_mode:
-        st.info("Your existing holdings have been loaded as opening balances. Their original purchase dates are unavailable. The existing portfolio file stays untouched; a new transaction ledger will be created when you save your first trade or ledger edit.")
     if notice := st.session_state.pop("portfolio_notice", None):
         st.success(notice)
 
@@ -1147,7 +1147,7 @@ def render_portfolio(region_name: str) -> None:
             try:
                 if not ticker:
                     raise ValueError("Enter a ticker symbol.")
-                add_transaction(action, ticker, shares, price, fees, trade_date.isoformat(), note)
+                add_transaction(action, ticker, shares, price, fees, trade_date.isoformat(), note, access_token)
                 st.session_state.pop("transactions_editor", None)
                 st.session_state["portfolio_notice"] = f"{action} recorded for {ticker}. Your holdings have been recalculated."
                 st.rerun()
@@ -1158,7 +1158,7 @@ def render_portfolio(region_name: str) -> None:
         position_frame = calculate_positions(transactions)
     except ValueError as error:
         st.error(f"The current transaction ledger cannot be valued: {error}")
-        render_transaction_ledger(transactions)
+        render_transaction_ledger(transactions, access_token)
         return
 
     position_rows = position_frame.to_dict(orient="records")
@@ -1168,7 +1168,7 @@ def render_portfolio(region_name: str) -> None:
         realized = sum(float(position["realized_pnl"]) for position in position_rows if position.get("realized_known", True))
         if position_rows:
             st.metric("Realised P&L · quote currencies mixed", format_number(realized))
-        render_transaction_ledger(transactions)
+        render_transaction_ledger(transactions, access_token)
         return
 
     main_benchmark_symbol = next(iter(MARKET_REGIONS[region_name]["benchmarks"]))
@@ -1420,7 +1420,7 @@ def render_portfolio(region_name: str) -> None:
                     st.metric("No-change baseline error", f"{score['baseline_mae_pct']:.2f}%")
                 st.caption(f"Historical direction accuracy: {score['directional_accuracy_pct']:.1f}% across prior rolling test windows. The scorecard evaluates historical point estimates; it does not validate future simulated ranges.")
             if st.button("Save this scenario to Forecast lab tracking", key=f"save_portfolio_forecast_{selected_ticker}_{horizon}_{lookback}_{method}"):
-                _, was_added = record_forecast(selected_ticker, forecast["history"].index[-1], horizon, forecast)
+                _, was_added = record_forecast(selected_ticker, forecast["history"].index[-1], horizon, forecast, access_token)
                 st.success("Scenario saved for later scoring." if was_added else "This matching scenario is already being tracked.")
     with detail_tabs[3]:
         articles = fetch_ticker_news(selected_ticker, count=8)
@@ -1430,7 +1430,7 @@ def render_portfolio(region_name: str) -> None:
         else:
             render_empty("No recent headlines are available for this ticker.")
 
-    render_transaction_ledger(transactions)
+    render_transaction_ledger(transactions, access_token)
 
 
 def save_report_for_region(now: datetime, region_name: str, benchmarks: list[dict], market_news: list[dict], gainers: pd.DataFrame, losers: pd.DataFrame) -> tuple[str, Path]:
@@ -1533,11 +1533,17 @@ def render_daily_brief(region_name: str, now: datetime, benchmarks: list[dict], 
 
 def main() -> None:
     apply_styles()
+    user_session = render_access_gate()
+    if user_session is None:
+        return
+    access_token = str(user_session["access_token"])
     now = london_now()
 
     with st.sidebar:
         st.markdown("## ◈ Market Brief")
         st.caption("Daily market intelligence")
+        st.caption(f"Signed in as {user_session['email']}")
+        st.button("Sign out", use_container_width=True, on_click=logout_user)
         region_name = st.selectbox("Market region", list(MARKET_REGIONS), key="market_region")
         st.caption("Market selection changes the benchmarks, headlines, and mover screen.")
         if st.button("↻  Refresh market data", use_container_width=True):
@@ -1562,11 +1568,11 @@ def main() -> None:
     elif page == "Movers":
         render_movers(region_name, benchmarks)
     elif page == "Watchlist":
-        render_watchlist(region_name, benchmarks)
+        render_watchlist(region_name, benchmarks, access_token)
     elif page == "Portfolio":
-        render_portfolio(region_name)
+        render_portfolio(region_name, access_token)
     elif page == "Forecast lab":
-        render_forecast_lab()
+        render_forecast_lab(access_token)
     elif page == "Daily brief":
         render_daily_brief(region_name, now, benchmarks, market_news)
 
