@@ -100,54 +100,103 @@ def apply_styles() -> None:
     st.markdown(
         """
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
-        :root { --ink:#eaf0f6; --muted:#91a2b6; --line:rgba(161,181,204,.15); --mint:#a6f0ca; }
+        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+        :root { color-scheme:dark; --ink:#f1f5ff; --muted:#95a4bb; --line:rgba(166,184,218,.13); --panel:#111a2b; --cyan:#62e5ec; --violet:#9b8cff; --lime:#c4f59a; --rose:#ff8e9b; }
+        * { box-sizing:border-box; }
         html, body, [class*="css"] { font-family:'Manrope',sans-serif; }
-        .stApp { background:radial-gradient(ellipse at 82% -10%,rgba(47,88,78,.26),transparent 35%),#0a1017; color:var(--ink); }
+        .stApp { color:var(--ink); background:radial-gradient(ellipse at 82% -14%,rgba(93,79,190,.25),transparent 34%),radial-gradient(ellipse at 5% 18%,rgba(27,153,167,.12),transparent 30%),#080d17; }
         [data-testid="stHeader"] { background:transparent; }
-        [data-testid="stSidebar"] { background:#0d141d; border-right:1px solid var(--line); }
-        .block-container { max-width:1460px; padding:2rem 1.5rem 4rem; }
-        h1,h2,h3 { color:var(--ink); letter-spacing:-.04em; }
-        .eyebrow,.section-label { color:var(--mint); font:.73rem 'DM Mono',monospace; letter-spacing:.12em; text-transform:uppercase; }
-        .section-label { color:#91a2b6; margin:1.1rem 0 .9rem; }
-        .hero-title { color:var(--ink); font-size:2.6rem; font-weight:800; line-height:1.1; letter-spacing:-.065em; margin:0; }
-        .hero-sub { color:var(--muted); font-size:.96rem; margin:.6rem 0 1.2rem; }
-        .metric-card { min-height:108px; padding:16px 18px; border:1px solid var(--line); border-radius:15px; background:linear-gradient(145deg,rgba(24,35,48,.96),rgba(16,24,34,.96)); }
-        .metric-label { color:#91a2b6; font-size:.74rem; letter-spacing:.04em; }
-        .metric-value { color:var(--ink); font-size:1.42rem; font-weight:700; letter-spacing:-.045em; margin-top:8px; }
-        .metric-change { font: .76rem 'DM Mono',monospace; margin-top:4px; }
-        .panel { padding:18px 20px; border:1px solid var(--line); border-radius:15px; background:linear-gradient(145deg,rgba(20,30,42,.96),rgba(14,22,32,.96)); }
-        .news-card { padding:12px 0; border-bottom:1px solid var(--line); }
-        .news-card:last-child { border-bottom:0; }
-        .news-meta { color:#8798ac; font:.68rem 'DM Mono',monospace; letter-spacing:.04em; margin-bottom:7px; text-transform:uppercase; }
-        .news-title { color:var(--ink); font-size:.98rem; font-weight:650; line-height:1.5; overflow-wrap:anywhere; }
-        .news-summary { color:#9aabbd; font-size:.86rem; line-height:1.6; margin-top:6px; overflow-wrap:anywhere; }
-        .source-chip { display:inline-block; color:#bfeeda; background:rgba(166,240,202,.09); border:1px solid rgba(166,240,202,.18); border-radius:999px; padding:2px 7px; margin-right:6px; font-size:.62rem; letter-spacing:.05em; }
-        .news-card a:hover { color:#a6f0ca !important; }
-        .news-card:hover { background:rgba(166,240,202,.025); }
-        .small-note { color:#91a2b6; font-size:.78rem; line-height:1.55; }
-        div[data-testid="stDataFrame"] { overflow:hidden; border:1px solid var(--line); border-radius:12px; }
-        .stButton button,.stDownloadButton button { color:#d9f9e8; font-weight:650; background:rgba(166,240,202,.09); border:1px solid rgba(166,240,202,.38); border-radius:9px; }
-        .stButton button:hover,.stDownloadButton button:hover { color:#fff; border-color:var(--mint); }
-        div[data-testid="stMetric"] { padding:11px 15px; border:1px solid var(--line); border-radius:14px; background:linear-gradient(145deg,rgba(24,35,48,.96),rgba(16,24,34,.96)); }
-        div[data-testid="stMetricLabel"] { color:#91a2b6; }
-        div[data-testid="stMetricValue"] { color:var(--ink); }
-        div[role="radiogroup"] { gap:.4rem; }
-        div[role="radiogroup"] label { padding:.38rem .75rem; border:1px solid var(--line); border-radius:999px; background:rgba(17,25,35,.75); transition:all .15s ease; }
-        div[role="radiogroup"] label:hover { border-color:rgba(166,240,202,.5); }
-        div[data-testid="stSelectbox"] label, div[data-testid="stMultiSelect"] label { color:#9aabbd; }
-        div[data-testid="stPlotlyChart"] { border:1px solid rgba(161,181,204,.08); border-radius:14px; overflow:hidden; background:rgba(14,22,32,.55); }
+        [data-testid="stDecoration"] { background:linear-gradient(90deg,var(--cyan),var(--violet),var(--lime)); height:2px; }
+        [data-testid="stSidebar"] { background:linear-gradient(180deg,#0d1422,#0b111b 72%); border-right:1px solid var(--line); }
+        [data-testid="stSidebar"] > div:first-child { padding-top:1.15rem; }
+        .side-brand { display:flex; align-items:center; gap:.72rem; margin:.15rem 0 1.15rem; }
+        .side-brand-mark { display:grid; place-items:center; width:40px; height:40px; border:1px solid rgba(98,229,236,.3); border-radius:13px; color:var(--cyan); background:linear-gradient(145deg,rgba(98,229,236,.15),rgba(155,140,255,.16)); box-shadow:0 0 26px rgba(98,229,236,.09); font-size:1.28rem; }
+        .side-brand-name { color:#edf4ff; font:700 .83rem 'Space Grotesk',sans-serif; letter-spacing:.12em; }
+        .side-brand-sub { display:block; color:#8595ad; margin-top:2px; font:.56rem 'DM Mono',monospace; letter-spacing:.13em; }
+        .user-pill { display:flex; align-items:center; gap:.55rem; margin:.55rem 0 .85rem; padding:.55rem .7rem; color:#aab8cc; border:1px solid var(--line); border-radius:11px; background:rgba(6,11,19,.38); font-size:.73rem; overflow-wrap:anywhere; }
+        .user-dot { width:7px; height:7px; flex:0 0 7px; border-radius:50%; background:var(--lime); box-shadow:0 0 10px rgba(196,245,154,.6); }
+        .st-key-logout_button button { color:#c1ccdc; background:rgba(255,255,255,.035); border-color:rgba(166,184,218,.14); box-shadow:none; }
+        .st-key-logout_button button:hover { color:#fff; background:rgba(255,142,155,.1); border-color:rgba(255,142,155,.45); }
+        .nav-overline { color:#8090a9; margin:.35rem 0 .35rem; font:.61rem 'DM Mono',monospace; letter-spacing:.15em; text-transform:uppercase; }
+        .st-key-dashboard_section { position:sticky; top:.2rem; z-index:80; backdrop-filter:blur(18px); }
+        [data-testid="stCaptionContainer"] { color:#96a5bb; line-height:1.55; }
+        .block-container { max-width:1540px; padding:1.65rem 1.55rem 4rem; }
+        h1,h2,h3,h4 { color:var(--ink); font-family:'Space Grotesk','Manrope',sans-serif; letter-spacing:-.045em; }
+        h2 { margin-top:.25rem; }
+        .eyebrow,.section-label { color:var(--cyan); font:.68rem 'DM Mono',monospace; letter-spacing:.16em; text-transform:uppercase; }
+        .section-label { color:#aab7cb; margin:1.35rem 0 .85rem; }
+        .hero-shell { position:relative; overflow:hidden; isolation:isolate; padding:1.65rem 1.8rem 1.35rem; margin:.35rem 0 1rem; border:1px solid rgba(150,167,255,.2); border-radius:24px; background:linear-gradient(116deg,rgba(18,29,48,.96),rgba(17,23,43,.91) 55%,rgba(29,27,57,.88)); box-shadow:0 22px 70px rgba(0,0,0,.24),inset 0 1px rgba(255,255,255,.035); }
+        .hero-shell:before { content:''; position:absolute; z-index:-1; width:360px; height:360px; right:-95px; top:-205px; border-radius:50%; background:radial-gradient(circle,rgba(98,229,236,.25),rgba(155,140,255,.12) 42%,transparent 70%); filter:blur(5px); }
+        .hero-topline { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+        .hero-kicker { color:#aebdd2; font:.66rem 'DM Mono',monospace; letter-spacing:.18em; text-transform:uppercase; }
+        .session-badge { display:inline-flex; align-items:center; gap:.48rem; border:1px solid var(--line); border-radius:999px; padding:.38rem .72rem; background:rgba(8,13,23,.38); color:#bdc9da; font:.69rem 'DM Mono',monospace; white-space:nowrap; }
+        .session-dot { width:7px; height:7px; display:inline-block; border-radius:50%; background:var(--violet); box-shadow:0 0 12px currentColor; }
+        .session-badge.open .session-dot { background:var(--lime); color:var(--lime); animation:pulse 2s infinite; }
+        @keyframes pulse { 50% { box-shadow:0 0 4px 3px rgba(196,245,154,.13); } }
+        .hero-title { color:var(--ink); font:700 clamp(2.15rem,4vw,3.35rem)/1.03 'Space Grotesk','Manrope',sans-serif; letter-spacing:-.075em; margin:.9rem 0 0; }
+        .hero-title .hero-accent { background:linear-gradient(95deg,var(--cyan),#a9a1ff 78%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+        .hero-sub { color:#a7b5ca; font-size:.91rem; line-height:1.65; margin:.6rem 0 1.1rem; max-width:780px; }
+        .hero-meta { display:flex; flex-wrap:wrap; gap:.48rem; }
+        .hero-chip { display:inline-flex; align-items:center; gap:.4rem; color:#c1cde0; border:1px solid rgba(166,184,218,.12); border-radius:9px; background:rgba(7,12,21,.38); padding:.42rem .62rem; font:.67rem 'DM Mono',monospace; }
+        .hero-chip b { color:#edf3ff; font-weight:500; }
+        .metric-card { position:relative; overflow:hidden; min-height:116px; padding:16px 18px; border:1px solid var(--line); border-radius:17px; background:linear-gradient(145deg,rgba(21,32,52,.96),rgba(14,21,36,.94)); box-shadow:0 9px 28px rgba(0,0,0,.12); transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+        .metric-card:hover { transform:translateY(-2px); border-color:rgba(98,229,236,.32); box-shadow:0 14px 34px rgba(0,0,0,.2); }
+        .metric-label { color:#9cacc3; font:.67rem 'DM Mono',monospace; letter-spacing:.07em; text-transform:uppercase; }
+        .metric-value { color:var(--ink); font:600 1.48rem 'Space Grotesk',sans-serif; letter-spacing:-.045em; margin-top:8px; overflow-wrap:anywhere; }
+        .metric-change { font:.72rem 'DM Mono',monospace; margin-top:5px; }
+        .panel { padding:19px 21px; border:1px solid var(--line); border-radius:18px; background:linear-gradient(145deg,rgba(17,27,45,.97),rgba(12,19,32,.97)); box-shadow:0 12px 34px rgba(0,0,0,.13); }
+        .news-card { padding:14px 14px 15px; margin:0 0 .5rem; border:1px solid rgba(166,184,218,.1); border-left:2px solid rgba(98,229,236,.52); border-radius:12px; background:linear-gradient(115deg,rgba(16,26,43,.77),rgba(13,20,34,.45)); transition:transform .18s ease,border-color .18s ease,background .18s ease; }
+        .news-card:last-child { margin-bottom:0; }
+        .news-card:hover { transform:translateX(2px); border-color:rgba(98,229,236,.28); border-left-color:var(--cyan); background:rgba(26,39,61,.74); }
+        .news-meta { color:#92a2ba; font:.62rem 'DM Mono',monospace; letter-spacing:.07em; line-height:1.6; margin-bottom:8px; text-transform:uppercase; }
+        .news-title { color:var(--ink); font-size:.92rem; font-weight:700; line-height:1.45; overflow-wrap:anywhere; }
+        .news-summary { color:#9cacc1; font-size:.8rem; line-height:1.58; margin-top:7px; overflow-wrap:anywhere; }
+        .source-chip { display:inline-block; color:#a9f1e9; background:rgba(98,229,236,.08); border:1px solid rgba(98,229,236,.2); border-radius:999px; padding:2px 8px; margin-right:7px; font-size:.59rem; letter-spacing:.06em; }
+        .news-card a:hover { color:var(--cyan) !important; }
+        .small-note { color:#95a4bb; font-size:.76rem; line-height:1.58; }
+        div[data-testid="stDataFrame"] { overflow:hidden; border:1px solid var(--line); border-radius:14px; background:rgba(15,23,39,.7); }
+        .stButton button,.stDownloadButton button,.stLinkButton button { min-height:40px; color:#08131c; font-weight:800; background:linear-gradient(105deg,var(--cyan),#a5e9dd 48%,#b7f39a); border:1px solid rgba(165,245,230,.68); border-radius:11px; box-shadow:0 5px 20px rgba(47,205,208,.12); transition:transform .16s ease,filter .16s ease,box-shadow .16s ease; }
+        .stButton button:hover,.stDownloadButton button:hover,.stLinkButton button:hover { color:#071117; border-color:#d3fff3; filter:brightness(1.08); transform:translateY(-1px); box-shadow:0 8px 26px rgba(47,205,208,.2); }
+        .stButton button:focus-visible,.stDownloadButton button:focus-visible { outline:2px solid var(--violet); outline-offset:2px; }
+        div[data-testid="stMetric"] { padding:12px 15px; border:1px solid var(--line); border-radius:15px; background:linear-gradient(145deg,rgba(21,32,52,.95),rgba(13,20,34,.95)); box-shadow:0 8px 25px rgba(0,0,0,.1); }
+        div[data-testid="stMetricLabel"] { color:#9cacc3; font:.69rem 'DM Mono',monospace; }
+        div[data-testid="stMetricValue"] { color:var(--ink); font-family:'Space Grotesk',sans-serif; letter-spacing:-.035em; }
+        div[data-testid="stMetricDelta"] { font-family:'DM Mono',monospace; }
+        div[role="radiogroup"] { gap:.42rem; }
+        div[role="radiogroup"] label { padding:.4rem .72rem; border:1px solid rgba(166,184,218,.13); border-radius:999px; background:rgba(15,23,38,.72); transition:all .16s ease; }
+        div[role="radiogroup"] label:hover { border-color:rgba(98,229,236,.38); }
+        .st-key-dashboard_section [role="radiogroup"] { gap:.38rem; padding:.5rem; border:1px solid rgba(166,184,218,.11); border-radius:16px; background:rgba(11,17,29,.78); box-shadow:0 8px 24px rgba(0,0,0,.14); }
+        .st-key-dashboard_section [role="radiogroup"] label { padding:.48rem .82rem; color:#aab9ce; border:1px solid transparent; background:transparent; font-size:.78rem; font-weight:650; }
+        .st-key-dashboard_section [role="radiogroup"] label:has(input:checked) { color:#eafcff; border-color:rgba(98,229,236,.24); background:linear-gradient(110deg,rgba(98,229,236,.14),rgba(155,140,255,.14)); box-shadow:inset 0 0 18px rgba(98,229,236,.035); }
+        div[data-testid="stSelectbox"] label, div[data-testid="stMultiSelect"] label, div[data-testid="stTextInput"] label, div[data-testid="stNumberInput"] label { color:#aab8cd; font-size:.78rem; }
+        div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > div { background:rgba(11,18,30,.86); border-color:rgba(166,184,218,.16); border-radius:10px; }
+        div[data-baseweb="select"] > div:hover, div[data-baseweb="input"] > div:hover, div[data-baseweb="textarea"] > div:hover { border-color:rgba(98,229,236,.4); }
+        div[data-testid="stPlotlyChart"] { border:1px solid rgba(166,184,218,.1); border-radius:17px; overflow:hidden; background:linear-gradient(145deg,rgba(15,23,39,.86),rgba(10,16,27,.78)); box-shadow:0 12px 35px rgba(0,0,0,.12); }
         div[data-testid="stPlotlyChart"] iframe { width:100% !important; }
-        [data-testid="stExpander"] summary { overflow-wrap:anywhere; }
+        [data-testid="stExpander"] { border:1px solid var(--line); border-radius:14px; background:rgba(15,23,38,.55); overflow:hidden; }
+        [data-testid="stExpander"] summary { overflow-wrap:anywhere; color:#dbe7f7; font-weight:650; }
+        [data-testid="stTabs"] [role="tablist"] { gap:.35rem; border-bottom:1px solid var(--line); }
+        [data-testid="stTabs"] button[role="tab"] { color:#9cacc1; border-radius:10px 10px 0 0; padding:.55rem .9rem; }
+        [data-testid="stTabs"] button[role="tab"][aria-selected="true"] { color:var(--cyan); border-bottom-color:var(--cyan); }
+        div[data-testid="stAlert"] { border-radius:13px; border:1px solid var(--line); background:rgba(17,27,44,.9); }
         hr { border-color:var(--line); }
+        ::selection { color:#071017; background:var(--cyan); }
+        ::-webkit-scrollbar { width:9px; height:9px; }
+        ::-webkit-scrollbar-thumb { background:rgba(139,158,190,.28); border-radius:9px; }
+        ::-webkit-scrollbar-thumb:hover { background:rgba(98,229,236,.42); }
         @media (max-width: 768px) {
             .block-container { padding:1rem .8rem 3rem; }
-            .hero-title { font-size:2rem; letter-spacing:-.05em; }
-            .hero-sub { font-size:.88rem; line-height:1.5; }
+            .hero-shell { padding:1.15rem 1rem 1rem; border-radius:18px; }
+            .hero-topline { align-items:flex-start; flex-direction:column; gap:.65rem; }
+            .hero-title { font-size:2.25rem; letter-spacing:-.06em; }
+            .hero-sub { font-size:.84rem; line-height:1.55; }
+            .hero-chip { font-size:.61rem; }
             [data-testid="stHorizontalBlock"] { flex-wrap:wrap !important; gap:.65rem !important; }
             [data-testid="stHorizontalBlock"] > [data-testid="column"] { flex:1 1 100% !important; min-width:100% !important; }
-            div[data-testid="stMetric"] { min-height:0; padding:.7rem .8rem; }
-            div[data-testid="stMetricValue"] { font-size:1.15rem; }
+            div[data-testid="stMetric"] { min-height:0; padding:.72rem .82rem; }
+            div[data-testid="stMetricValue"] { font-size:1.1rem; }
+            .st-key-dashboard_section [role="radiogroup"] { flex-wrap:wrap; gap:.28rem; }
+            .st-key-dashboard_section [role="radiogroup"] label { padding:.42rem .62rem; font-size:.73rem; }
             div[role="radiogroup"] { flex-wrap:wrap; gap:.35rem; }
             div[role="radiogroup"] label { padding:.32rem .58rem; }
             .stButton button, .stDownloadButton button { min-height:44px; width:100%; }
@@ -158,9 +207,11 @@ def apply_styles() -> None:
         }
         @media (max-width: 420px) {
             .block-container { padding-left:.55rem; padding-right:.55rem; }
-            .hero-title { font-size:1.72rem; }
+            .hero-title { font-size:1.9rem; }
+            .hero-chip { width:100%; }
             .panel { padding:14px; }
-            .metric-value { font-size:1.2rem; }
+            .metric-value { font-size:1.24rem; }
+            [data-testid="stTabs"] button[role="tab"] { padding:.45rem .62rem; font-size:.78rem; }
         }
         </style>
         """,
@@ -191,7 +242,7 @@ def format_percent(value: object) -> str:
 def render_metric_card(label: str, value: str, change: float | None = None, detail: str = "") -> None:
     change_html = ""
     if change is not None and pd.notna(change):
-        color = "#a6f0ca" if change >= 0 else "#ff8e8e"
+        color = "#c4f59a" if change >= 0 else "#ff8e9b"
         change_html = f'<div class="metric-change" style="color:{color}">{format_percent(change)} today</div>'
     detail_html = f'<div class="small-note">{escape(detail)}</div>' if detail else ""
     st.markdown(
@@ -366,22 +417,29 @@ def render_header(region_name: str, now: datetime, benchmarks: list[dict], marke
     benchmark_date = max((row["as_of"] for row in benchmarks if row.get("as_of")), default=None)
     price_status = data_freshness_text(benchmark_date, now)
     news_status = headline_freshness(market_news, now)
-
-    st.markdown('<div class="eyebrow">Daily market intelligence</div>', unsafe_allow_html=True)
-    st.markdown('<h1 class="hero-title">The market, in focus.</h1>', unsafe_allow_html=True)
+    session_class = "open" if session == "Likely open" else "closed"
     st.markdown(
-        f'<div class="hero-sub">Prices, catalysts, risk indicators and a portfolio view · '
-        f'<span style="font-family:DM Mono,monospace">{now:%d %b %Y · %H:%M} London</span></div>',
+        f'<section class="hero-shell">'
+        f'<div class="hero-topline"><div class="hero-kicker">◈ &nbsp; Market Brief / Daily intelligence</div>'
+        f'<div class="session-badge {session_class}"><span class="session-dot"></span>{escape(session)}</div></div>'
+        f'<h1 class="hero-title">Markets, <span class="hero-accent">decoded.</span></h1>'
+        f'<p class="hero-sub">Prices, catalysts, risk signals and your portfolio — gathered into one clear view.</p>'
+        f'<div class="hero-meta">'
+        f'<span class="hero-chip">REGION <b>{escape(region_name)}</b></span>'
+        f'<span class="hero-chip">SESSION <b>{escape(session_detail)}</b></span>'
+        f'<span class="hero-chip">PRICES <b>{escape(price_status)}</b></span>'
+        f'<span class="hero-chip">NEWS <b>{escape(news_status)}</b></span>'
+        f'<span class="hero-chip">AS OF <b>{now:%d %b %Y · %H:%M} LONDON</b></span>'
+        f'</div></section>',
         unsafe_allow_html=True,
     )
-    st.caption(f"**{region_name} session:** {session_detail}  |  **Price freshness:** {price_status}  |  **Headlines:** {news_status}  |  Daily bars are not live quotes.")
     if session == "Likely open":
-        st.info("The selected market appears to be in its usual session hours. Holiday calendars are not checked, and Yahoo daily bars may still reflect the previous close.")
+        st.caption("Session estimate uses usual trading hours; holidays are not checked. Yahoo prices are daily bars, not live quotes.")
     if benchmark_date and (now.date() - benchmark_date).days > 4:
         st.warning("The latest benchmark data is several days old. Refresh later or check Yahoo Finance directly.")
 
 
-def render_price_history(history: pd.DataFrame, title: str, color: str = "#a6f0ca") -> None:
+def render_price_history(history: pd.DataFrame, title: str, color: str = "#62e5ec") -> None:
     if history.empty or "Close" not in history:
         render_empty("Price history is temporarily unavailable.")
         return
@@ -393,7 +451,7 @@ def render_price_history(history: pd.DataFrame, title: str, color: str = "#a6f0c
             name=title,
             line={"color": color, "width": 2.2},
             fill="tozeroy",
-            fillcolor="rgba(166,240,202,.07)",
+            fillcolor="rgba(98,229,236,.07)",
         )
     )
     figure.update_layout(
@@ -420,18 +478,18 @@ def market_lens_figure(history: pd.DataFrame, title: str, visible_sessions: int,
             y=indicators["Close"],
             mode="lines",
             name=title,
-            line={"color": "#a6f0ca", "width": 2.4},
+            line={"color": "#62e5ec", "width": 2.4},
             fill="tozeroy",
-            fillcolor="rgba(166,240,202,.045)",
+            fillcolor="rgba(98,229,236,.045)",
         )
     )
     if "Bollinger Bands" in overlays and {"BB_lower", "BB_upper"}.issubset(indicators.columns):
-        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["BB_lower"], name="Lower band", line={"color": "rgba(133,166,255,.25)", "width": 1}, hoverinfo="skip"))
-        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["BB_upper"], name="Bollinger range", line={"color": "rgba(133,166,255,.25)", "width": 1}, fill="tonexty", fillcolor="rgba(133,166,255,.08)"))
+        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["BB_lower"], name="Lower band", line={"color": "rgba(155,140,255,.25)", "width": 1}, hoverinfo="skip"))
+        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["BB_upper"], name="Bollinger range", line={"color": "rgba(155,140,255,.25)", "width": 1}, fill="tonexty", fillcolor="rgba(155,140,255,.08)"))
     if "SMA 20" in overlays and "SMA_20" in indicators:
-        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_20"], name="SMA 20", line={"color": "#85a6ff", "width": 1.3}))
+        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_20"], name="SMA 20", line={"color": "#9b8cff", "width": 1.3}))
     if "SMA 50" in overlays and "SMA_50" in indicators:
-        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_50"], name="SMA 50", line={"color": "#f2c879", "width": 1.3}))
+        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_50"], name="SMA 50", line={"color": "#c4f59a", "width": 1.3}))
     figure.update_layout(
         height=390,
         margin={"l": 10, "r": 12, "t": 68, "b": 24},
@@ -514,7 +572,7 @@ def render_news_desk(region_name: str, market_news: list[dict], now: datetime, f
             x=topic_counts.values,
             y=topic_counts.index,
             orientation="h",
-            marker={"color": ["#a6f0ca", "#85a6ff", "#c89bff", "#f2c879", "#79d6db", "#ff9f8b"][:len(topic_counts)]},
+            marker={"color": ["#62e5ec", "#9b8cff", "#d38cff", "#c4f59a", "#6dd9da", "#ff8e9b"][:len(topic_counts)]},
             text=topic_counts.values,
             textposition="outside",
             hovertemplate="%{y}: %{x} headlines<extra></extra>",
@@ -950,29 +1008,29 @@ def forecast_figure(history: pd.DataFrame, forecast: dict) -> go.Figure:
                 low=indicators["Low"],
                 close=indicators["Close"],
                 name="Adjusted daily price",
-                increasing_line_color="#a6f0ca",
+                increasing_line_color="#62e5ec",
                 decreasing_line_color="#ff8e8e",
             ),
             row=1,
             col=1,
         )
     else:
-        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["Close"], name="Close", line={"color": "#a6f0ca"}), row=1, col=1)
+        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["Close"], name="Close", line={"color": "#62e5ec"}), row=1, col=1)
 
-    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["BB_lower"], name="Bollinger lower", line={"color": "rgba(133,166,255,.4)", "width": 1}), row=1, col=1)
+    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["BB_lower"], name="Bollinger lower", line={"color": "rgba(155,140,255,.4)", "width": 1}), row=1, col=1)
     figure.add_trace(
-        go.Scatter(x=indicators.index, y=indicators["BB_upper"], name="Bollinger band", line={"color": "rgba(133,166,255,.4)", "width": 1}, fill="tonexty", fillcolor="rgba(133,166,255,.08)"),
+        go.Scatter(x=indicators.index, y=indicators["BB_upper"], name="Bollinger band", line={"color": "rgba(155,140,255,.4)", "width": 1}, fill="tonexty", fillcolor="rgba(155,140,255,.08)"),
         row=1,
         col=1,
     )
-    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_20"], name="SMA 20", line={"color": "#85a6ff", "width": 1.2}), row=1, col=1)
-    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_50"], name="SMA 50", line={"color": "#f2c879", "width": 1.2}), row=1, col=1)
+    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_20"], name="SMA 20", line={"color": "#9b8cff", "width": 1.2}), row=1, col=1)
+    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_50"], name="SMA 50", line={"color": "#c4f59a", "width": 1.2}), row=1, col=1)
 
-    hist_colors = ["#a6f0ca" if value >= 0 else "#ff8e8e" for value in indicators["MACD_histogram"].fillna(0)]
+    hist_colors = ["#62e5ec" if value >= 0 else "#ff8e8e" for value in indicators["MACD_histogram"].fillna(0)]
     figure.add_trace(go.Bar(x=indicators.index, y=indicators["MACD_histogram"], name="MACD histogram", marker_color=hist_colors), row=2, col=1)
-    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["MACD"], name="MACD", line={"color": "#85a6ff", "width": 1.3}), row=2, col=1)
-    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["MACD_signal"], name="Signal", line={"color": "#f2c879", "width": 1.2}), row=2, col=1)
-    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["RSI_14"], name="RSI 14", line={"color": "#c89bff", "width": 1.5}), row=3, col=1)
+    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["MACD"], name="MACD", line={"color": "#9b8cff", "width": 1.3}), row=2, col=1)
+    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["MACD_signal"], name="Signal", line={"color": "#c4f59a", "width": 1.2}), row=2, col=1)
+    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["RSI_14"], name="RSI 14", line={"color": "#d38cff", "width": 1.5}), row=3, col=1)
     for y_value in (30, 70):
         figure.add_hline(y=y_value, line_dash="dot", line_color="rgba(145,162,182,.45)", row=3, col=1)
 
@@ -1052,10 +1110,10 @@ def render_forecast_lab(access_token: str) -> None:
     median_path = [forecast["spot"], *forecast["median_path"]]
     high_path = [forecast["spot"], *forecast["upper_path"]]
     figure = go.Figure()
-    figure.add_trace(go.Scatter(x=displayed_history.index, y=displayed_history["Close"], mode="lines", name="Adjusted close", line={"color": "#85a6ff", "width": 2}))
+    figure.add_trace(go.Scatter(x=displayed_history.index, y=displayed_history["Close"], mode="lines", name="Adjusted close", line={"color": "#9b8cff", "width": 2}))
     figure.add_trace(go.Scatter(x=forecast_dates, y=low_path, mode="lines", line={"width": 0}, showlegend=False, hoverinfo="skip"))
-    figure.add_trace(go.Scatter(x=forecast_dates, y=high_path, mode="lines", line={"width": 0}, fill="tonexty", fillcolor="rgba(166,240,202,.14)", name=f"{confidence}% simulation range", hoverinfo="skip"))
-    figure.add_trace(go.Scatter(x=forecast_dates, y=median_path, mode="lines+markers", name="Median path", line={"color": "#a6f0ca", "width": 2, "dash": "dash"}, marker={"size": 5}))
+    figure.add_trace(go.Scatter(x=forecast_dates, y=high_path, mode="lines", line={"width": 0}, fill="tonexty", fillcolor="rgba(98,229,236,.14)", name=f"{confidence}% simulation range", hoverinfo="skip"))
+    figure.add_trace(go.Scatter(x=forecast_dates, y=median_path, mode="lines+markers", name="Median path", line={"color": "#62e5ec", "width": 2, "dash": "dash"}, marker={"size": 5}))
     figure.update_layout(height=400, margin={"l": 12, "r": 12, "t": 76, "b": 22}, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font={"color": "#91a2b6", "family": "Manrope", "size": 11}, title={"text": "Simulated price paths · historical close and range", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#eaf0f6"}}, xaxis={"showgrid": False}, yaxis={"gridcolor": "rgba(145,162,182,.12)", "zeroline": False}, legend={"orientation": "h", "y": 1.04, "x": 0, "font": {"size": 9}}, hovermode="x unified")
     st.plotly_chart(figure, use_container_width=True, config={"displayModeBar": False, "responsive": True})
     if method == "Historical bootstrap":
@@ -1206,9 +1264,9 @@ def portfolio_value_figure(series: pd.Series, base_currency: str, visible_sessio
             y=window.values,
             mode="lines",
             name="Open holdings",
-            line={"color": "#a6f0ca", "width": 2.5},
+            line={"color": "#62e5ec", "width": 2.5},
             fill="tozeroy",
-            fillcolor="rgba(166,240,202,.08)",
+            fillcolor="rgba(98,229,236,.08)",
             hovertemplate=f"%{{x|%d %b %Y}}<br>{base_currency} %{{y:,.2f}}<extra></extra>",
         )
     )
@@ -1234,8 +1292,8 @@ def portfolio_relative_figure(stock_history: pd.DataFrame, benchmark_history: pd
     figure = go.Figure()
     if len(combined) >= 2:
         indexed = (combined / combined.iloc[0] - 1) * 100
-        figure.add_trace(go.Scatter(x=indexed.index, y=indexed["Holding"], mode="lines", name="Holding", line={"color": "#a6f0ca", "width": 2.4}))
-        figure.add_trace(go.Scatter(x=indexed.index, y=indexed[benchmark_name], mode="lines", name=benchmark_name, line={"color": "#85a6ff", "width": 1.8}))
+        figure.add_trace(go.Scatter(x=indexed.index, y=indexed["Holding"], mode="lines", name="Holding", line={"color": "#62e5ec", "width": 2.4}))
+        figure.add_trace(go.Scatter(x=indexed.index, y=indexed[benchmark_name], mode="lines", name=benchmark_name, line={"color": "#9b8cff", "width": 1.8}))
     figure.add_hline(y=0, line_color="rgba(145,162,182,.38)", line_dash="dot")
     figure.update_layout(height=380, margin={"l": 12, "r": 12, "t": 76, "b": 24}, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font={"color": "#91a2b6", "family": "Manrope", "size": 11}, xaxis={"showgrid": False}, yaxis={"gridcolor": "rgba(145,162,182,.12)", "ticksuffix": "%"}, title={"text": f"Holding vs {benchmark_name} · rebased return", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#eaf0f6"}}, legend={"orientation": "h", "y": 1.04, "x": 0, "font": {"size": 9}}, hovermode="x unified")
     return figure
@@ -1248,10 +1306,10 @@ def portfolio_scenario_figure(history: pd.DataFrame, forecast: dict, confidence:
     median = [forecast["spot"], *forecast["median_path"]]
     high = [forecast["spot"], *forecast["upper_path"]]
     figure = go.Figure()
-    figure.add_trace(go.Scatter(x=close.index, y=close.values, name="Recent daily close", line={"color": "#85a6ff", "width": 2}))
+    figure.add_trace(go.Scatter(x=close.index, y=close.values, name="Recent daily close", line={"color": "#9b8cff", "width": 2}))
     figure.add_trace(go.Scatter(x=dates, y=low, line={"width": 0}, showlegend=False, hoverinfo="skip"))
-    figure.add_trace(go.Scatter(x=dates, y=high, line={"width": 0}, fill="tonexty", fillcolor="rgba(166,240,202,.14)", name=f"{confidence}% scenario range", hoverinfo="skip"))
-    figure.add_trace(go.Scatter(x=dates, y=median, mode="lines+markers", name="Median scenario", line={"color": "#a6f0ca", "width": 2, "dash": "dash"}, marker={"size": 5}))
+    figure.add_trace(go.Scatter(x=dates, y=high, line={"width": 0}, fill="tonexty", fillcolor="rgba(98,229,236,.14)", name=f"{confidence}% scenario range", hoverinfo="skip"))
+    figure.add_trace(go.Scatter(x=dates, y=median, mode="lines+markers", name="Median scenario", line={"color": "#62e5ec", "width": 2, "dash": "dash"}, marker={"size": 5}))
     figure.update_layout(height=390, margin={"l": 12, "r": 12, "t": 76, "b": 24}, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font={"color": "#91a2b6", "family": "Manrope", "size": 11}, xaxis={"showgrid": False}, yaxis={"gridcolor": "rgba(145,162,182,.12)", "zeroline": False}, title={"text": f"Recent price and {confidence}% scenario range", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#eaf0f6"}}, legend={"orientation": "h", "y": 1.04, "x": 0, "font": {"size": 9}}, hovermode="x unified")
     return figure
 
@@ -1652,7 +1710,7 @@ def render_portfolio(region_name: str, access_token: str) -> None:
         allocation_col, sector_col = st.columns(2, gap="large")
         with allocation_col:
             if allocations:
-                figure = go.Figure(go.Pie(labels=[f"{item['ticker']} · {item['name']}" for item in allocations], values=[item["market_value_base"] for item in allocations], hole=.66, marker={"colors": ["#a6f0ca", "#85a6ff", "#f2c879", "#c89bff", "#ff8e8e", "#79d5e6", "#ff9f8b", "#93d3a2"]}))
+                figure = go.Figure(go.Pie(labels=[f"{item['ticker']} · {item['name']}" for item in allocations], values=[item["market_value_base"] for item in allocations], hole=.66, marker={"colors": ["#62e5ec", "#9b8cff", "#c4f59a", "#d38cff", "#ff8e8e", "#6dd9da", "#ff8e9b", "#a5e7b3"]}))
                 figure.update_layout(
                     height=410,
                     margin={"l": 8, "r": 8, "t": 62, "b": 76},
@@ -1671,7 +1729,7 @@ def render_portfolio(region_name: str, access_token: str) -> None:
                 sector_values[sector] = sector_values.get(sector, 0.0) + float(position["market_value_base"])
             if sector_values:
                 sector_frame = pd.Series(sector_values).sort_values()
-                figure = go.Figure(go.Bar(x=sector_frame.values, y=sector_frame.index, orientation="h", marker={"color": "#85a6ff"}, text=[f"{value / market_total * 100:.1f}%" if market_total else "" for value in sector_frame.values], textposition="outside", hovertemplate="%{y}<br>Value: %{x:,.2f}<extra></extra>"))
+                figure = go.Figure(go.Bar(x=sector_frame.values, y=sector_frame.index, orientation="h", marker={"color": "#9b8cff"}, text=[f"{value / market_total * 100:.1f}%" if market_total else "" for value in sector_frame.values], textposition="outside", hovertemplate="%{y}<br>Value: %{x:,.2f}<extra></extra>"))
                 figure.update_layout(height=410, margin={"l": 8, "r": 38, "t": 62, "b": 20}, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font={"color": "#91a2b6", "family": "Manrope", "size": 10}, xaxis={"showgrid": False, "visible": False}, yaxis={"showgrid": False}, showlegend=False, title={"text": "Sector exposure · share of portfolio", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#eaf0f6"}})
                 st.plotly_chart(figure, use_container_width=True, config={"displayModeBar": False, "responsive": True})
             else:
@@ -1916,17 +1974,16 @@ def main() -> None:
     now = london_now()
 
     with st.sidebar:
-        st.markdown("## ◈ Market Brief")
-        st.caption("Daily market intelligence")
-        st.caption(f"Signed in as {user_session['email']}")
-        st.button("Sign out", use_container_width=True, on_click=logout_user)
+        st.markdown('<div class="side-brand"><span class="side-brand-mark">◈</span><span class="side-brand-name">MARKET BRIEF<span class="side-brand-sub">INTELLIGENCE DESK</span></span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="user-pill"><span class="user-dot"></span><span>{escape(str(user_session["email"]))}</span></div>', unsafe_allow_html=True)
+        st.button("Sign out", key="logout_button", use_container_width=True, on_click=logout_user)
         region_name = st.selectbox("Market region", list(MARKET_REGIONS), key="market_region")
-        st.caption("Market selection changes the benchmarks, headlines, and mover screen.")
-        if st.button("↻  Refresh market data", use_container_width=True):
+        st.caption("Switches the benchmark, movers and regional headlines.")
+        if st.button("↻  Refresh market data", key="refresh_market_data", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
         st.markdown("---")
-        st.caption("Prices use Yahoo Finance daily bars. Headlines combine Yahoo Finance with FT, BBC Business and official central-bank feeds.")
+        st.caption("Yahoo Finance · FT · BBC Business · official central-bank feeds")
 
     region_config = MARKET_REGIONS[region_name]
     with st.spinner(f"Loading {region_name} benchmarks and headlines…"):
@@ -1937,7 +1994,25 @@ def main() -> None:
     render_header(region_name, now, benchmarks, market_news)
 
     sections = ["Market pulse", "News desk", "Movers", "Company explorer", "Watchlist", "Portfolio", "Forecast lab", "Daily brief"]
-    page = st.radio("Dashboard section", sections, horizontal=True, label_visibility="collapsed", key="dashboard_section")
+    section_icons = {
+        "Market pulse": "◉",
+        "News desk": "▤",
+        "Movers": "↗",
+        "Company explorer": "⌕",
+        "Watchlist": "☆",
+        "Portfolio": "▣",
+        "Forecast lab": "∿",
+        "Daily brief": "≡",
+    }
+    st.markdown('<div class="nav-overline">Your workspace</div>', unsafe_allow_html=True)
+    page = st.radio(
+        "Dashboard section",
+        sections,
+        horizontal=True,
+        label_visibility="collapsed",
+        key="dashboard_section",
+        format_func=lambda section: f"{section_icons[section]}  {section}",
+    )
 
     if page == "Market pulse":
         render_market_pulse(region_name, benchmarks, market_news)
