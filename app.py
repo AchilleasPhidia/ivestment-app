@@ -167,13 +167,16 @@ def apply_styles() -> None:
         div[role="radiogroup"] { gap:.42rem; }
         div[role="radiogroup"] label { padding:.4rem .72rem; border:1px solid rgba(166,184,218,.13); border-radius:999px; background:rgba(15,23,38,.72); transition:all .16s ease; }
         div[role="radiogroup"] label:hover { border-color:rgba(98,229,236,.38); }
-        div[role="radiogroup"] input[type="radio"], input[type="checkbox"] { accent-color:var(--amber) !important; }
-        div[role="radiogroup"] label:has(input:checked) { border-color:rgba(255,179,107,.52); background:rgba(255,179,107,.12); }
+        input[type="radio"], input[type="checkbox"] { accent-color:var(--amber) !important; }
+        div[role="radiogroup"] label:has(input:checked) { color:#fff4e8 !important; border-color:rgba(255,179,107,.65) !important; background:rgba(255,179,107,.14) !important; }
+        div[role="radio"][aria-checked="true"] > div:first-child { border-color:var(--amber) !important; }
+        div[role="radio"][aria-checked="true"] > div:first-child::after { background:var(--amber) !important; }
         .st-key-dashboard_section [role="radiogroup"] { gap:.38rem; padding:.5rem; border:1px solid rgba(166,184,218,.11); border-radius:16px; background:rgba(11,17,29,.78); box-shadow:0 8px 24px rgba(0,0,0,.14); }
         .st-key-dashboard_section [role="radiogroup"] label { padding:.48rem .82rem; color:#c3cede; border:1px solid transparent; background:transparent; font-size:.78rem; font-weight:650; }
         .st-key-dashboard_section [role="radiogroup"] label:has(input:checked) { color:#fff4e8; border-color:rgba(255,179,107,.5); background:linear-gradient(110deg,rgba(255,179,107,.2),rgba(255,179,107,.08)); box-shadow:inset 0 0 18px rgba(255,179,107,.07); }
-        div[data-testid="stMultiSelect"] [data-baseweb="tag"] { color:#1a1109 !important; background:#ffb36b !important; border:1px solid #ffc68e !important; border-radius:8px !important; }
-        div[data-testid="stMultiSelect"] [data-baseweb="tag"] span, div[data-testid="stMultiSelect"] [data-baseweb="tag"] svg { color:#1a1109 !important; fill:#1a1109 !important; }
+        [data-baseweb="tag"], div[data-testid="stMultiSelect"] [data-baseweb="tag"] { color:#1a1109 !important; background:#ffb36b !important; border:1px solid #ffd0a3 !important; border-radius:8px !important; opacity:1 !important; }
+        [data-baseweb="tag"] *, div[data-testid="stMultiSelect"] [data-baseweb="tag"] * { color:#1a1109 !important; fill:#1a1109 !important; opacity:1 !important; }
+        [data-baseweb="tag"] button { color:#1a1109 !important; background:transparent !important; border:0 !important; box-shadow:none !important; }
         [role="option"][aria-selected="true"] { color:#1a1109 !important; background:rgba(255,179,107,.76) !important; }
         div[data-testid="stSelectbox"] label, div[data-testid="stMultiSelect"] label, div[data-testid="stTextInput"] label, div[data-testid="stNumberInput"] label { color:#aab8cd; font-size:.78rem; }
         div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > div { background:rgba(11,18,30,.86); border-color:rgba(166,184,218,.16); border-radius:10px; }
