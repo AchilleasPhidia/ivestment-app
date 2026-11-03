@@ -97,14 +97,16 @@ def apply_styles() -> None:
             --teal: #167b78;
             --red: #b53c4b;
         }
+        html { color-scheme:light !important; }
         html, body, [class*="css"] { font-family: Inter, "Segoe UI", Arial, sans-serif; }
-        .stApp { color:var(--ink); background:var(--canvas); }
+        .stApp { color:var(--ink); background:var(--canvas); overflow-x:hidden; }
         [data-testid="stHeader"] { background:rgba(244,246,248,.94); }
         [data-testid="stDecoration"] { height:3px; background:var(--orange); }
         [data-testid="stSidebar"] { background:var(--surface); border-right:1px solid var(--line); }
         [data-testid="stSidebar"] > div:first-child { padding-top:1rem; }
-        [data-testid="stCaptionContainer"] { color:var(--muted); line-height:1.55; }
-        .block-container { max-width:1840px; padding:1.25rem 1.6rem 3rem; }
+        [data-testid="stCaptionContainer"],[data-testid="stCaptionContainer"] * { color:#435267 !important; line-height:1.55; }
+        .block-container { width:100%; max-width:1840px; padding:1.25rem 1.6rem 3rem; }
+        [data-testid="stHorizontalBlock"] > [data-testid="column"] { min-width:0 !important; }
         h1,h2,h3,h4 { color:var(--ink); font-family:Inter, "Segoe UI", Arial, sans-serif; letter-spacing:-.025em; }
         h2 { margin-top:.25rem; }
         a { color:#17615f; }
@@ -133,17 +135,17 @@ def apply_styles() -> None:
         .hero-meta { display:flex; flex-wrap:wrap; gap:.45rem; }
         .hero-chip { display:inline-flex; align-items:center; gap:.35rem; padding:.4rem .58rem; border:1px solid var(--line); border-radius:8px; background:#f8fafc; color:#344255; font-size:.72rem; }
         .hero-chip b { color:var(--ink); font-weight:650; }
-        .metric-card,div[data-testid="stMetric"] { color:var(--ink); border:1px solid var(--line); border-radius:12px; background:var(--surface); box-shadow:0 2px 8px rgba(24,34,48,.035); }
+        .metric-card,div[data-testid="stMetric"] { min-width:0; color:var(--ink); border:1px solid var(--line); border-radius:12px; background:var(--surface); box-shadow:0 2px 8px rgba(24,34,48,.035); }
         .metric-card { min-height:96px; padding:14px 15px; }
         .metric-card,div[data-testid="stMetric"] { position:relative; transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease; }
         .metric-card:hover,div[data-testid="stMetric"]:hover,.metric-card:focus-within,div[data-testid="stMetric"]:focus-within { z-index:5; transform:scale(1.035); border-color:#c87a43; box-shadow:0 8px 22px rgba(24,34,48,.13); }
         .metric-card:hover .metric-value,div[data-testid="stMetric"]:hover [data-testid="stMetricValue"] { font-weight:800; transform:scale(1.035); transform-origin:left center; }
-        .metric-label,div[data-testid="stMetricLabel"] { color:var(--muted); font-size:.72rem; }
-        .metric-value,div[data-testid="stMetricValue"] { color:var(--ink); font-weight:700; overflow-wrap:anywhere; transition:transform .16s ease,font-weight .16s ease; }
+        .metric-label,[data-testid="stMetricLabel"],[data-testid="stMetricLabel"] *,[data-testid="stMetricLabel"] p { color:#435267 !important; -webkit-text-fill-color:#435267 !important; font-size:.82rem !important; opacity:1 !important; }
+        .metric-value,[data-testid="stMetricValue"],[data-testid="stMetricValue"] * { color:#182230 !important; -webkit-text-fill-color:#182230 !important; font-weight:700; overflow-wrap:anywhere; transition:transform .16s ease,font-weight .16s ease; }
         .metric-change { margin-top:5px; font-size:.74rem; font-weight:650; }
-        div[data-testid="stMetricDelta"] { color:var(--orange) !important; }
-        div[data-testid="stMetricDelta"] svg { fill:currentColor; }
-        .small-note { color:var(--muted); font-size:.84rem; line-height:1.6; }
+        div[data-testid="stMetricDelta"],div[data-testid="stMetricDelta"] * { color:var(--orange) !important; }
+        div[data-testid="stMetricDelta"] svg { fill:currentColor !important; }
+        .small-note,.small-note * { color:#435267 !important; font-size:.84rem; line-height:1.6; }
         .panel { padding:16px 18px; border:1px solid var(--line); border-radius:13px; background:var(--surface); box-shadow:0 2px 8px rgba(24,34,48,.035); }
         .info-note { display:flex; align-items:flex-start; gap:.62rem; padding:.75rem .85rem; border:1px solid #e6c5a7; border-left:3px solid var(--orange); border-radius:10px; background:#fff7ed; color:#66340f; font-size:.83rem; line-height:1.55; }
         .info-note-mark { display:grid; place-items:center; flex:0 0 19px; width:19px; height:19px; margin-top:1px; border:1px solid #d29a70; border-radius:50%; color:#7b3a12; font-size:.7rem; font-weight:700; }
@@ -158,14 +160,15 @@ def apply_styles() -> None:
         .stButton button,.stDownloadButton button,.stLinkButton button { color:#fff; background:var(--orange); border:1px solid var(--orange); border-radius:9px; box-shadow:none; }
         .stButton button:hover,.stDownloadButton button:hover,.stLinkButton button:hover { color:#fff; background:#873c0f; border-color:#873c0f; }
         .stButton button:focus-visible,.stDownloadButton button:focus-visible,.stLinkButton button:focus-visible { outline:3px solid #f1b47f; outline-offset:2px; }
-        div[role="radiogroup"] label { color:#344255; background:#fff; border-color:var(--line); }
-        div[role="radiogroup"] label:hover { border-color:#c87a43; }
-        div[role="radiogroup"] label:has(input:checked) { color:#77380f !important; border-color:#e5b38f !important; background:var(--orange-soft) !important; }
-        div[role="radio"] { color:#344255 !important; }
+        div[role="radiogroup"] label,div[role="radiogroup"] label * { color:#344255 !important; -webkit-text-fill-color:#344255 !important; background-color:transparent !important; border-color:var(--line) !important; opacity:1 !important; }
+        div[role="radiogroup"] label:hover { border-color:#c87a43 !important; }
+        div[role="radiogroup"] label:has(input:checked),div[role="radiogroup"] label:has(input:checked) * { color:#77380f !important; -webkit-text-fill-color:#77380f !important; border-color:#e5b38f !important; background-color:var(--orange-soft) !important; }
+        div[role="radio"],div[role="radio"] * { color:#344255 !important; opacity:1 !important; }
         div[role="radio"] > div:first-child { border-color:#64748b !important; }
-        div[role="radio"][aria-checked="true"] { color:#77380f !important; }
+        div[role="radio"][aria-checked="true"],div[role="radio"][aria-checked="true"] * { color:#77380f !important; }
         div[role="radio"][aria-checked="true"] > div:first-child { border-color:var(--orange) !important; }
         div[role="radio"][aria-checked="true"] > div:first-child::after { background:var(--orange) !important; }
+        div[role="checkbox"],div[role="checkbox"] * { color:#344255 !important; opacity:1 !important; }
         div[role="checkbox"][aria-checked="true"] > div:first-child { border-color:var(--orange) !important; background:var(--orange) !important; }
         div[role="checkbox"][aria-checked="true"] svg { color:#ffffff !important; fill:#ffffff !important; }
         .st-key-dashboard_section [role="radiogroup"] { gap:.25rem; padding:.35rem; border:1px solid var(--line); border-radius:11px; background:#fff; }
@@ -175,16 +178,18 @@ def apply_styles() -> None:
         [data-baseweb="tag"] *,div[data-testid="stMultiSelect"] [data-baseweb="tag"] * { color:#542b12 !important; fill:#542b12 !important; }
         [role="option"][aria-selected="true"] { color:#542b12 !important; background:#ffead8 !important; }
         [role="listbox"],[role="option"] { color:var(--ink) !important; background:#fff !important; }
-        div[data-testid="stSelectbox"] label,div[data-testid="stMultiSelect"] label,div[data-testid="stTextInput"] label,div[data-testid="stNumberInput"] label,div[data-testid="stDateInput"] label { color:#344255; }
-        div[data-baseweb="select"] > div,div[data-baseweb="input"] > div,div[data-baseweb="textarea"] > div { color:var(--ink) !important; background:#fff !important; border-color:#cbd5df !important; }
-        div[data-baseweb="select"] span,div[data-baseweb="input"] input,div[data-baseweb="textarea"] textarea { color:var(--ink) !important; }
+        div[data-testid="stSelectbox"] label,div[data-testid="stMultiSelect"] label,div[data-testid="stTextInput"] label,div[data-testid="stNumberInput"] label,div[data-testid="stDateInput"] label { color:#344255 !important; opacity:1 !important; }
+        div[data-testid="stSelectbox"] [data-baseweb="select"] > div,div[data-testid="stMultiSelect"] [data-baseweb="select"] > div,div[data-baseweb="select"] > div,div[data-baseweb="input"] > div,div[data-baseweb="textarea"] > div { color:#182230 !important; background:#ffffff !important; border-color:#cbd5df !important; opacity:1 !important; }
+        div[data-baseweb="select"] span,div[data-baseweb="select"] input,div[data-baseweb="input"] input,div[data-baseweb="textarea"] textarea { color:#182230 !important; -webkit-text-fill-color:#182230 !important; }
         div[data-baseweb="select"] > div:hover,div[data-baseweb="input"] > div:hover,div[data-baseweb="textarea"] > div:hover { border-color:var(--orange); }
         div[data-testid="stPlotlyChart"] { border:1px solid var(--line); border-radius:12px; background:#fff; }
         [data-testid="stExpander"] { border:1px solid var(--line); border-radius:11px; background:#fff; }
         [data-testid="stExpander"] summary { color:var(--ink); }
-        [data-testid="stTabs"] [role="tablist"] { border-bottom-color:var(--line); }
-        [data-testid="stTabs"] button[role="tab"] { color:var(--muted); }
-        [data-testid="stTabs"] button[role="tab"][aria-selected="true"] { color:#7b3a12; border-bottom-color:var(--orange); }
+        [data-testid="stTabs"] [role="tablist"] { display:flex !important; flex-wrap:wrap !important; gap:.35rem !important; overflow:visible !important; border-bottom:1px solid var(--line) !important; }
+        [data-testid="stTabs"] [role="tab"],[data-testid="stTabs"] [role="tab"] *,[data-testid="stTabs"] [role="tab"] p { color:#344255 !important; -webkit-text-fill-color:#344255 !important; opacity:1 !important; visibility:visible !important; white-space:normal !important; }
+        [data-testid="stTabs"] [role="tab"] { flex:0 1 auto !important; min-width:max-content !important; background:#ffffff !important; border:1px solid #d9e0e8 !important; border-radius:8px 8px 0 0 !important; padding:.55rem .8rem !important; }
+        [data-testid="stTabs"] [role="tab"][aria-selected="true"],[data-testid="stTabs"] [role="tab"][aria-selected="true"] *,[data-testid="stTabs"] [role="tab"][aria-selected="true"] p { color:#77380f !important; -webkit-text-fill-color:#77380f !important; background:#fff2e8 !important; border-bottom-color:var(--orange) !important; }
+        [data-testid="stTabs"] [role="tabpanel"] { min-width:0 !important; overflow:visible !important; }
         div[data-testid="stAlert"],div[data-testid="stDataFrame"] { border-color:var(--line); background:#fff; }
         hr { border-color:var(--line); }
         ::selection { color:#fff; background:var(--orange); }
@@ -200,13 +205,19 @@ def apply_styles() -> None:
             .st-key-dashboard_section [role="radiogroup"] label { padding:.42rem .58rem; font-size:.78rem; }
             .stButton button,.stDownloadButton button { min-height:44px; }
         }
+        @media (min-width:769px) and (max-width:1250px) {
+            .block-container { padding-left:1rem; padding-right:1rem; }
+            [data-testid="stHorizontalBlock"] { flex-wrap:wrap !important; gap:.65rem !important; }
+            [data-testid="stHorizontalBlock"] > [data-testid="column"] { flex:1 1 calc(50% - .65rem) !important; min-width:calc(50% - .65rem) !important; }
+            [data-testid="stMetricValue"] { font-size:1.45rem !important; }
+        }
         @media (max-width:420px) {
             .block-container { padding-left:.55rem; padding-right:.55rem; }
             .hero-title { font-size:1.75rem; }
             .hero-chip { width:100%; }
             .panel { padding:13px; }
             .metric-value { font-size:1.24rem; }
-            [data-testid="stTabs"] button[role="tab"] { padding:.42rem .54rem; font-size:.78rem; }
+            [data-testid="stTabs"] [role="tab"] { padding:.42rem .54rem !important; font-size:.78rem !important; }
         }
         </style>
         """,
@@ -1706,18 +1717,19 @@ def render_portfolio(region_name: str, access_token: str) -> None:
                 key="portfolio_ticker_choice",
             )
         with st.form("portfolio_trade_form"):
-            trade_cols = st.columns([.9, 1, 1, 1, 1.05, 1.4])
+            trade_cols = st.columns(3)
             with trade_cols[0]:
                 action = st.selectbox("Action", ["Buy", "Sell"])
             with trade_cols[1]:
                 trade_date = st.date_input("Trade date", value=london_now().date())
             with trade_cols[2]:
                 shares = st.number_input("Shares", min_value=0.000001, value=1.0, step=1.0, format="%.6f")
-            with trade_cols[3]:
+            trade_cols = st.columns(3)
+            with trade_cols[0]:
                 price = st.number_input("Price / share", min_value=0.000001, value=1.0, step=0.01, format="%.4f")
-            with trade_cols[4]:
+            with trade_cols[1]:
                 fees = st.number_input("Fees", min_value=0.0, value=0.0, step=0.01, format="%.4f")
-            with trade_cols[5]:
+            with trade_cols[2]:
                 note = st.text_input("Note", placeholder="Broker or reason (optional)")
             submitted = st.form_submit_button("Add transaction", type="primary", use_container_width=True, disabled=not ticker)
         if submitted:
@@ -1830,10 +1842,12 @@ def render_portfolio(region_name: str, access_token: str) -> None:
         (f"Total P&L · {base_currency}", combined_gain, format_percent(combined_gain / basis_total * 100) if combined_gain is not None and basis_total else None),
     ]
     visible_metrics = [(label, value, delta) for label, value, delta in metric_values if value is not None]
-    metric_columns = st.columns(min(5, len(visible_metrics))) if visible_metrics else []
-    for column, (label, value, delta) in zip(metric_columns, visible_metrics):
-        with column:
-            st.metric(label, format_number(value), delta=delta)
+    for start in range(0, len(visible_metrics), 3):
+        metric_batch = visible_metrics[start : start + 3]
+        metric_columns = st.columns(len(metric_batch))
+        for column, (label, value, delta) in zip(metric_columns, metric_batch):
+            with column:
+                st.metric(label, format_number(value), delta=delta)
     if day_total is not None:
         st.caption(f"Daily change across open positions: {format_number(day_total)} {base_currency} · based on the latest Yahoo Finance daily bar versus the previous bar.")
     if not all_market_values:
@@ -1913,14 +1927,15 @@ def render_portfolio(region_name: str, access_token: str) -> None:
     with view_tabs[3]:
         st.markdown("### Whole-portfolio estimate")
         st.caption("Simulate the combined holdings as one portfolio, preserving how the stocks moved together in the historical daily bars.")
-        forecast_controls = st.columns([1, 1, 1, 1.35])
+        forecast_controls = st.columns(2)
         with forecast_controls[0]:
             portfolio_horizon = st.selectbox("Trading days ahead", [5, 20, 60], index=1, key="portfolio_forecast_horizon")
         with forecast_controls[1]:
             portfolio_lookback = st.selectbox("Return history", [40, 60, 90, 120], index=1, key="portfolio_forecast_lookback")
-        with forecast_controls[2]:
+        forecast_controls = st.columns(2)
+        with forecast_controls[0]:
             portfolio_confidence = st.selectbox("Scenario range", [80, 90, 95], index=1, key="portfolio_forecast_confidence")
-        with forecast_controls[3]:
+        with forecast_controls[1]:
             portfolio_method = st.selectbox("Simulation model", ["Historical bootstrap", "EWMA volatility"], key="portfolio_forecast_model")
 
         portfolio_signature = (
@@ -1972,17 +1987,19 @@ def render_portfolio(region_name: str, access_token: str) -> None:
         if stored_portfolio_forecast and stored_portfolio_forecast.get("signature") == portfolio_signature:
             portfolio_forecast = stored_portfolio_forecast["forecast"]
             estimate_currency = base_currency
-            estimate_metrics = st.columns(5)
-            with estimate_metrics[0]:
-                st.metric("Current portfolio value", f"{estimate_currency} {format_number(portfolio_forecast['spot'])}")
-            with estimate_metrics[1]:
-                st.metric("Median estimate", f"{estimate_currency} {format_number(portfolio_forecast['median'])}", delta=format_percent(portfolio_forecast["median_return"]))
-            with estimate_metrics[2]:
-                st.metric(f"{portfolio_confidence}% lower", f"{estimate_currency} {format_number(portfolio_forecast['lower'])}")
-            with estimate_metrics[3]:
-                st.metric(f"{portfolio_confidence}% upper", f"{estimate_currency} {format_number(portfolio_forecast['upper'])}")
-            with estimate_metrics[4]:
-                st.metric("Annualised volatility", f"{portfolio_forecast['annualized_vol']:.1f}%")
+            estimate_values = [
+                ("Current portfolio value", f"{estimate_currency} {format_number(portfolio_forecast['spot'])}", None),
+                ("Median estimate", f"{estimate_currency} {format_number(portfolio_forecast['median'])}", format_percent(portfolio_forecast["median_return"])),
+                (f"{portfolio_confidence}% lower", f"{estimate_currency} {format_number(portfolio_forecast['lower'])}", None),
+                (f"{portfolio_confidence}% upper", f"{estimate_currency} {format_number(portfolio_forecast['upper'])}", None),
+                ("Annualised volatility", f"{portfolio_forecast['annualized_vol']:.1f}%", None),
+            ]
+            for start in range(0, len(estimate_values), 3):
+                estimate_batch = estimate_values[start : start + 3]
+                estimate_metrics = st.columns(len(estimate_batch))
+                for metric_col, (label, value, delta) in zip(estimate_metrics, estimate_batch):
+                    with metric_col:
+                        st.metric(label, value, delta=delta)
             future_day = portfolio_forecast["future_date"]
             st.caption(f"Estimated through {future_day:%d %b %Y} · weekday estimate, exchange holidays not included.")
             render_chart(
@@ -2026,10 +2043,12 @@ def render_portfolio(region_name: str, access_token: str) -> None:
         holding_metrics.append(("Realised P&L", f"{format_number(selected['realized_base'])} {base_currency}", None))
     if xirr is not None:
         holding_metrics.append(("Money-weighted XIRR", format_percent(xirr * 100), None))
-    detail_columns = st.columns(min(6, len(holding_metrics)))
-    for column, (label, value, delta) in zip(detail_columns, holding_metrics):
-        with column:
-            st.metric(label, value, delta=delta)
+    for start in range(0, len(holding_metrics), 3):
+        detail_batch = holding_metrics[start : start + 3]
+        detail_columns = st.columns(len(detail_batch))
+        for column, (label, value, delta) in zip(detail_columns, detail_batch):
+            with column:
+                st.metric(label, value, delta=delta)
     if xirr is not None:
         st.caption("XIRR annualises dated buys and sells plus today’s open position value. It excludes dividends.")
     else:
@@ -2049,10 +2068,12 @@ def render_portfolio(region_name: str, access_token: str) -> None:
             if value is not None and pd.notna(value):
                 fundamental_metrics.append((label, format_number(value, decimals)))
         if fundamental_metrics:
-            fundamental_cols = st.columns(min(5, len(fundamental_metrics)))
-            for column, (label, value) in zip(fundamental_cols, fundamental_metrics):
-                with column:
-                    render_metric_card(label, value)
+            for start in range(0, len(fundamental_metrics), 3):
+                fundamental_batch = fundamental_metrics[start : start + 3]
+                fundamental_cols = st.columns(len(fundamental_batch))
+                for column, (label, value) in zip(fundamental_cols, fundamental_batch):
+                    with column:
+                        render_metric_card(label, value)
         if not detail_history.empty:
             render_chart(forecast_figure(detail_history, {"history": detail_history}, "Adjusted daily price"), use_container_width=True, config={"displayModeBar": False, "responsive": True})
             technical_values = []
@@ -2072,14 +2093,15 @@ def render_portfolio(region_name: str, access_token: str) -> None:
         else:
             render_info("Yahoo Finance returned no shared daily bars for this comparison.")
     with detail_tabs[2]:
-        control_cols = st.columns([.8, 1, 1, .9])
+        control_cols = st.columns(2)
         with control_cols[0]:
             horizon = st.selectbox("Trading days", [5, 20, 60], index=1, key=f"portfolio_horizon_{selected_ticker}")
         with control_cols[1]:
             lookback = st.selectbox("Return lookback", [40, 60, 90, 120], index=1, key=f"portfolio_lookback_{selected_ticker}")
-        with control_cols[2]:
+        control_cols = st.columns(2)
+        with control_cols[0]:
             confidence = st.selectbox("Scenario range", [80, 90, 95], index=1, key=f"portfolio_confidence_{selected_ticker}")
-        with control_cols[3]:
+        with control_cols[1]:
             method = st.selectbox("Model", ["Historical bootstrap", "EWMA volatility"], key=f"portfolio_model_{selected_ticker}")
         forecast = calculate_forecast(detail_history, horizon, lookback, confidence / 100, method, simulations=2000) if not detail_history.empty else None
         if forecast is None:
@@ -2087,17 +2109,19 @@ def render_portfolio(region_name: str, access_token: str) -> None:
         else:
             price_scale = float(selected["price"]) / float(forecast["spot"]) if selected.get("price") and forecast.get("spot") else 1.0
             scenario_factor = float(selected["shares"]) * float(selected["price_scale"]) * float(selected["fx_rate"] or 0.0)
-            scenario_cols = st.columns(4)
             scenario_values = [
                 (f"Median · {horizon}d", forecast["median"] * price_scale, forecast["median_return"]),
                 (f"{confidence}% lower", forecast["lower"] * price_scale, None),
                 (f"{confidence}% upper", forecast["upper"] * price_scale, None),
                 ("Annualised volatility", forecast["annualized_vol"], None),
             ]
-            for column, (label, value, delta) in zip(scenario_cols, scenario_values):
-                with column:
-                    suffix = "%" if label == "Annualised volatility" else f" {selected['currency']} / share"
-                    st.metric(label, f"{format_number(value, 1)}{suffix}", delta=format_percent(delta) if delta is not None else None)
+            for start in range(0, len(scenario_values), 2):
+                scenario_batch = scenario_values[start : start + 2]
+                scenario_cols = st.columns(len(scenario_batch))
+                for column, (label, value, delta) in zip(scenario_cols, scenario_batch):
+                    with column:
+                        suffix = "%" if label == "Annualised volatility" else f" {selected['currency']} / share"
+                        st.metric(label, f"{format_number(value, 1)}{suffix}", delta=format_percent(delta) if delta is not None else None)
             if scenario_factor:
                 st.caption(f"Median position-value scenario: {format_number(forecast['median'] * price_scale * scenario_factor)} {base_currency}; lower and upper scenarios: {format_number(forecast['lower'] * price_scale * scenario_factor)} to {format_number(forecast['upper'] * price_scale * scenario_factor)} {base_currency}. Uses the current share quantity and current FX conversion.")
             render_chart(portfolio_scenario_figure(detail_history, forecast, confidence), use_container_width=True, config={"displayModeBar": False, "responsive": True})
