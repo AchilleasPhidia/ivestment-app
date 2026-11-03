@@ -6,7 +6,6 @@ from io import BytesIO
 from typing import Any
 
 import pandas as pd
-from openpyxl.worksheet.table import Table, TableStyleInfo
 
 
 TRANSACTION_COLUMNS = ["transaction_id", "date", "ticker", "action", "shares", "price", "fees", "notes"]
@@ -97,6 +96,14 @@ def build_powerbi_workbook(
     about: dict[str, str],
 ) -> bytes:
     """Build a clean multi-sheet workbook containing only the supplied user's data."""
+    try:
+        from openpyxl import load_workbook
+        from openpyxl.worksheet.table import Table, TableStyleInfo
+    except ImportError as error:
+        raise ValueError(
+            "Excel export needs openpyxl. In the VS Code terminal, run: python -m pip install -r requirements.txt."
+        ) from error
+
     transaction_frame = transactions.copy()
     if "id" in transaction_frame.columns:
         transaction_frame = transaction_frame.rename(columns={"id": "transaction_id"})
@@ -142,8 +149,6 @@ def build_powerbi_workbook(
             _excel_safe(frame).to_excel(writer, sheet_name=sheet_name, index=False)
 
     buffer.seek(0)
-    from openpyxl import load_workbook
-
     workbook = load_workbook(buffer)
     for sheet in workbook.worksheets:
         sheet.freeze_panes = "A2"

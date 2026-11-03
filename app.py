@@ -54,7 +54,6 @@ from portfolio_store import (
     calculate_xirr,
     load_transactions,
     load_watchlist,
-    normalize_watchlist,
     save_transactions,
     save_watchlist,
 )
@@ -64,20 +63,6 @@ from user_access import logout_user, render_access_gate
 APP_DIR = Path(__file__).resolve().parent
 REPORT_DIR = APP_DIR / "reports"
 TIMEZONE = ZoneInfo("Europe/London")
-SECTOR_ETFS = {
-    "technology": "XLK",
-    "healthcare": "XLV",
-    "financial services": "XLF",
-    "financials": "XLF",
-    "consumer cyclical": "XLY",
-    "consumer defensive": "XLP",
-    "industrials": "XLI",
-    "energy": "XLE",
-    "basic materials": "XLB",
-    "real estate": "XLRE",
-    "utilities": "XLU",
-    "communication services": "XLC",
-}
 BASE_CURRENCIES = ("GBP", "USD", "EUR")
 NEWS_TOPIC_TERMS = {
     "Rates & central banks": ("central bank", "interest rate", "rate cut", "rate hike", "federal reserve", "bank of england", "ecb", "boj", "monetary policy"),
@@ -100,160 +85,153 @@ def apply_styles() -> None:
     st.markdown(
         """
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
-        :root { color-scheme:dark; --ink:#f1f5ff; --muted:#95a4bb; --line:rgba(166,184,218,.13); --panel:#111a2b; --cyan:#62e5ec; --violet:#9b8cff; --amber:#ffb36b; --rose:#ff8e9b; }
-        * { box-sizing:border-box; }
-        html, body, [class*="css"] { font-family:'Manrope',sans-serif; }
-        .stApp { color:var(--ink); background:radial-gradient(ellipse at 82% -14%,rgba(93,79,190,.25),transparent 34%),radial-gradient(ellipse at 5% 18%,rgba(27,153,167,.12),transparent 30%),#080d17; }
-        [data-testid="stHeader"] { background:transparent; }
-        [data-testid="stDecoration"] { background:linear-gradient(90deg,var(--cyan),var(--violet),var(--amber)); height:2px; }
-        [data-testid="stSidebar"] { background:linear-gradient(180deg,#0d1422,#0b111b 72%); border-right:1px solid var(--line); }
-        [data-testid="stSidebar"] > div:first-child { padding-top:1.15rem; }
-        .side-brand { display:flex; align-items:center; gap:.72rem; margin:.15rem 0 1.15rem; }
-        .side-brand-mark { display:grid; place-items:center; width:40px; height:40px; border:1px solid rgba(98,229,236,.3); border-radius:13px; color:var(--cyan); background:linear-gradient(145deg,rgba(98,229,236,.15),rgba(155,140,255,.16)); box-shadow:0 0 26px rgba(98,229,236,.09); font-size:1.28rem; }
-        .side-brand-name { color:#edf4ff; font:700 .83rem 'Space Grotesk',sans-serif; letter-spacing:.12em; }
-        .side-brand-sub { display:block; color:#8595ad; margin-top:2px; font:.56rem 'DM Mono',monospace; letter-spacing:.13em; }
-        .user-pill { display:flex; align-items:center; gap:.55rem; margin:.55rem 0 .85rem; padding:.55rem .7rem; color:#aab8cc; border:1px solid var(--line); border-radius:11px; background:rgba(6,11,19,.38); font-size:.73rem; overflow-wrap:anywhere; }
-        .user-dot { width:7px; height:7px; flex:0 0 7px; border-radius:50%; background:var(--amber); box-shadow:0 0 10px rgba(255,179,107,.6); }
-        .st-key-logout_button button { color:#c1ccdc; background:rgba(255,255,255,.035); border-color:rgba(166,184,218,.14); box-shadow:none; }
-        .st-key-logout_button button:hover { color:#fff; background:rgba(255,142,155,.1); border-color:rgba(255,142,155,.45); }
-        .nav-overline { color:#8090a9; margin:.35rem 0 .35rem; font:.61rem 'DM Mono',monospace; letter-spacing:.15em; text-transform:uppercase; }
-        .st-key-dashboard_section { position:sticky; top:.2rem; z-index:80; backdrop-filter:blur(18px); }
-        [data-testid="stCaptionContainer"] { color:#96a5bb; line-height:1.55; }
-        .block-container { max-width:1540px; padding:1.65rem 1.55rem 4rem; }
-        h1,h2,h3,h4 { color:var(--ink); font-family:'Space Grotesk','Manrope',sans-serif; letter-spacing:-.045em; }
+        :root {
+            color-scheme: light;
+            --ink: #182230;
+            --muted: #526173;
+            --line: #d9e0e8;
+            --surface: #ffffff;
+            --canvas: #f4f6f8;
+            --orange: #a94f17;
+            --orange-soft: #fff2e8;
+            --teal: #167b78;
+            --red: #b53c4b;
+        }
+        html, body, [class*="css"] { font-family: Inter, "Segoe UI", Arial, sans-serif; }
+        .stApp { color:var(--ink); background:var(--canvas); }
+        [data-testid="stHeader"] { background:rgba(244,246,248,.94); }
+        [data-testid="stDecoration"] { height:3px; background:var(--orange); }
+        [data-testid="stSidebar"] { background:var(--surface); border-right:1px solid var(--line); }
+        [data-testid="stSidebar"] > div:first-child { padding-top:1rem; }
+        [data-testid="stCaptionContainer"] { color:var(--muted); line-height:1.55; }
+        .block-container { max-width:1480px; padding:1.25rem 1.45rem 3rem; }
+        h1,h2,h3,h4 { color:var(--ink); font-family:Inter, "Segoe UI", Arial, sans-serif; letter-spacing:-.025em; }
         h2 { margin-top:.25rem; }
-        .eyebrow,.section-label { color:var(--cyan); font:.68rem 'DM Mono',monospace; letter-spacing:.16em; text-transform:uppercase; }
-        .section-label { color:#aab7cb; margin:1.35rem 0 .85rem; }
-        .hero-shell { position:relative; overflow:hidden; isolation:isolate; padding:1.65rem 1.8rem 1.35rem; margin:.35rem 0 1rem; border:1px solid rgba(150,167,255,.2); border-radius:24px; background:linear-gradient(116deg,rgba(18,29,48,.96),rgba(17,23,43,.91) 55%,rgba(29,27,57,.88)); box-shadow:0 22px 70px rgba(0,0,0,.24),inset 0 1px rgba(255,255,255,.035); }
-        .hero-shell:before { content:''; position:absolute; z-index:-1; width:360px; height:360px; right:-95px; top:-205px; border-radius:50%; background:radial-gradient(circle,rgba(98,229,236,.25),rgba(155,140,255,.12) 42%,transparent 70%); filter:blur(5px); }
+        .side-brand { display:flex; align-items:center; gap:.72rem; margin:.15rem 0 1.15rem; }
+        .side-brand-mark { display:grid; place-items:center; width:40px; height:40px; border-radius:12px; color:#fff; background:var(--orange); font-size:1.25rem; }
+        .side-brand-name { color:var(--ink); font-weight:750; font-size:.82rem; letter-spacing:.11em; }
+        .side-brand-sub { display:block; color:var(--muted); margin-top:3px; font-size:.58rem; letter-spacing:.12em; }
+        .user-pill { display:flex; align-items:center; gap:.55rem; margin:.55rem 0 .85rem; padding:.55rem .7rem; color:#344255; border:1px solid var(--line); border-radius:10px; background:#f8fafc; font-size:.75rem; overflow-wrap:anywhere; }
+        .user-dot { width:7px; height:7px; flex:0 0 7px; border-radius:50%; background:var(--orange); }
+        .st-key-logout_button button { color:#344255; background:#fff; border-color:var(--line); }
+        .nav-overline,.eyebrow,.section-label { color:#7b3a12; font-size:.68rem; font-weight:650; letter-spacing:.13em; text-transform:uppercase; }
+        .nav-overline { margin:.45rem 0 .35rem; }
+        .eyebrow { margin:.2rem 0 .45rem; }
+        .section-label { color:#526173; margin:1.3rem 0 .75rem; }
+        .st-key-dashboard_section { margin:.35rem 0 1rem; }
+        .hero-shell { padding:1.3rem 1.45rem; margin:.2rem 0 1rem; border:1px solid var(--line); border-radius:16px; background:var(--surface); box-shadow:0 3px 14px rgba(24,34,48,.045); }
         .hero-topline { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
-        .hero-kicker { color:#aebdd2; font:.66rem 'DM Mono',monospace; letter-spacing:.18em; text-transform:uppercase; }
-        .session-badge { display:inline-flex; align-items:center; gap:.48rem; border:1px solid var(--line); border-radius:999px; padding:.38rem .72rem; background:rgba(8,13,23,.38); color:#bdc9da; font:.69rem 'DM Mono',monospace; white-space:nowrap; }
-        .session-dot { width:7px; height:7px; display:inline-block; border-radius:50%; background:var(--violet); box-shadow:0 0 12px currentColor; }
-        .session-badge.open .session-dot { background:var(--amber); color:var(--amber); animation:pulse 2s infinite; }
-        @keyframes pulse { 50% { box-shadow:0 0 4px 3px rgba(255,179,107,.13); } }
-        .hero-title { color:var(--ink); font:700 clamp(2.15rem,4vw,3.35rem)/1.03 'Space Grotesk','Manrope',sans-serif; letter-spacing:-.075em; margin:.9rem 0 0; }
-        .hero-title .hero-accent { background:linear-gradient(95deg,var(--cyan),#a9a1ff 78%); -webkit-background-clip:text; background-clip:text; color:transparent; }
-        .hero-sub { color:#a7b5ca; font-size:.91rem; line-height:1.65; margin:.6rem 0 1.1rem; max-width:780px; }
-        .hero-meta { display:flex; flex-wrap:wrap; gap:.48rem; }
-        .hero-chip { display:inline-flex; align-items:center; gap:.4rem; color:#c1cde0; border:1px solid rgba(166,184,218,.12); border-radius:9px; background:rgba(7,12,21,.38); padding:.42rem .62rem; font:.67rem 'DM Mono',monospace; }
-        .hero-chip b { color:#edf3ff; font-weight:500; }
-        .metric-card { position:relative; overflow:hidden; min-height:116px; padding:16px 18px; border:1px solid var(--line); border-radius:17px; background:linear-gradient(145deg,rgba(21,32,52,.96),rgba(14,21,36,.94)); box-shadow:0 9px 28px rgba(0,0,0,.12); transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
-        .metric-card:hover { transform:translateY(-2px); border-color:rgba(98,229,236,.32); box-shadow:0 14px 34px rgba(0,0,0,.2); }
-        .metric-label { color:#9cacc3; font:.67rem 'DM Mono',monospace; letter-spacing:.07em; text-transform:uppercase; }
-        .metric-value { color:var(--ink); font:600 1.48rem 'Space Grotesk',sans-serif; letter-spacing:-.045em; margin-top:8px; overflow-wrap:anywhere; }
-        .metric-change { font:.72rem 'DM Mono',monospace; margin-top:5px; }
-        .panel { padding:19px 21px; border:1px solid var(--line); border-radius:18px; background:linear-gradient(145deg,rgba(17,27,45,.97),rgba(12,19,32,.97)); box-shadow:0 12px 34px rgba(0,0,0,.13); }
-        .info-note { display:flex; align-items:flex-start; gap:.65rem; padding:.78rem .9rem; border:1px solid rgba(255,179,107,.22); border-left:3px solid var(--amber); border-radius:12px; background:linear-gradient(105deg,rgba(255,179,107,.1),rgba(17,27,45,.9) 62%); color:#f2cda8; font-size:.82rem; line-height:1.55; }
-        .info-note-mark { display:grid; place-items:center; flex:0 0 19px; width:19px; height:19px; margin-top:1px; border:1px solid rgba(255,179,107,.38); border-radius:50%; color:var(--amber); font:500 .7rem 'DM Mono',monospace; }
-        .news-card { padding:14px 14px 15px; margin:0 0 .5rem; border:1px solid rgba(166,184,218,.1); border-left:2px solid rgba(98,229,236,.52); border-radius:12px; background:linear-gradient(115deg,rgba(16,26,43,.77),rgba(13,20,34,.45)); transition:transform .18s ease,border-color .18s ease,background .18s ease; }
-        .news-card:last-child { margin-bottom:0; }
-        .news-card:hover { transform:translateX(2px); border-color:rgba(98,229,236,.28); border-left-color:var(--cyan); background:rgba(26,39,61,.74); }
-        .news-meta { color:#92a2ba; font:.62rem 'DM Mono',monospace; letter-spacing:.07em; line-height:1.6; margin-bottom:8px; text-transform:uppercase; }
-        .news-title { color:var(--ink); font-size:.92rem; font-weight:700; line-height:1.45; overflow-wrap:anywhere; }
-        .news-summary { color:#9cacc1; font-size:.8rem; line-height:1.58; margin-top:7px; overflow-wrap:anywhere; }
-        .source-chip { display:inline-block; color:#a9f1e9; background:rgba(98,229,236,.08); border:1px solid rgba(98,229,236,.2); border-radius:999px; padding:2px 8px; margin-right:7px; font-size:.59rem; letter-spacing:.06em; }
-        .news-card a:hover { color:var(--cyan) !important; }
-        .small-note { color:#95a4bb; font-size:.76rem; line-height:1.58; }
-        div[data-testid="stDataFrame"] { overflow:hidden; border:1px solid var(--line); border-radius:14px; background:rgba(15,23,39,.7); }
-        .stButton button,.stDownloadButton button,.stLinkButton button { min-height:40px; color:#08131c; font-weight:800; background:linear-gradient(105deg,var(--cyan),#a5e9dd 44%,var(--amber)); border:1px solid rgba(165,245,230,.68); border-radius:11px; box-shadow:0 5px 20px rgba(47,205,208,.12); transition:transform .16s ease,filter .16s ease,box-shadow .16s ease; }
-        .stButton button:hover,.stDownloadButton button:hover,.stLinkButton button:hover { color:#071117; border-color:#d3fff3; filter:brightness(1.08); transform:translateY(-1px); box-shadow:0 8px 26px rgba(47,205,208,.2); }
-        .stButton button:focus-visible,.stDownloadButton button:focus-visible { outline:2px solid var(--violet); outline-offset:2px; }
-        div[data-testid="stMetric"] { padding:12px 15px; border:1px solid var(--line); border-radius:15px; background:linear-gradient(145deg,rgba(21,32,52,.95),rgba(13,20,34,.95)); box-shadow:0 8px 25px rgba(0,0,0,.1); }
-        div[data-testid="stMetricLabel"] { color:#9cacc3; font:.69rem 'DM Mono',monospace; }
-        div[data-testid="stMetricValue"] { color:var(--ink); font-family:'Space Grotesk',sans-serif; letter-spacing:-.035em; }
-        div[data-testid="stMetricDelta"] { font-family:'DM Mono',monospace; }
-        div[role="radiogroup"] { gap:.42rem; }
-        div[role="radiogroup"] label { padding:.4rem .72rem; border:1px solid rgba(166,184,218,.13); border-radius:999px; background:rgba(15,23,38,.72); transition:all .16s ease; }
-        div[role="radiogroup"] label:hover { border-color:rgba(98,229,236,.38); }
-        input[type="radio"], input[type="checkbox"] { accent-color:var(--amber) !important; }
-        div[role="radiogroup"] label:has(input:checked) { color:#fff4e8 !important; border-color:rgba(255,179,107,.65) !important; background:rgba(255,179,107,.14) !important; }
-        div[role="radio"][aria-checked="true"] > div:first-child { border-color:var(--amber) !important; }
-        div[role="radio"][aria-checked="true"] > div:first-child::after { background:var(--amber) !important; }
-        .st-key-dashboard_section [role="radiogroup"] { gap:.38rem; padding:.5rem; border:1px solid rgba(166,184,218,.11); border-radius:16px; background:rgba(11,17,29,.78); box-shadow:0 8px 24px rgba(0,0,0,.14); }
-        .st-key-dashboard_section [role="radiogroup"] label { padding:.48rem .82rem; color:#c3cede; border:1px solid transparent; background:transparent; font-size:.78rem; font-weight:650; }
-        .st-key-dashboard_section [role="radiogroup"] label:has(input:checked) { color:#fff4e8; border-color:rgba(255,179,107,.5); background:linear-gradient(110deg,rgba(255,179,107,.2),rgba(255,179,107,.08)); box-shadow:inset 0 0 18px rgba(255,179,107,.07); }
-        [data-baseweb="tag"], div[data-testid="stMultiSelect"] [data-baseweb="tag"] { color:#1a1109 !important; background:#ffb36b !important; border:1px solid #ffd0a3 !important; border-radius:8px !important; opacity:1 !important; }
-        [data-baseweb="tag"] *, div[data-testid="stMultiSelect"] [data-baseweb="tag"] * { color:#1a1109 !important; fill:#1a1109 !important; opacity:1 !important; }
-        [data-baseweb="tag"] button { color:#1a1109 !important; background:transparent !important; border:0 !important; box-shadow:none !important; }
-        [role="option"][aria-selected="true"] { color:#1a1109 !important; background:rgba(255,179,107,.76) !important; }
-        div[data-testid="stSelectbox"] label, div[data-testid="stMultiSelect"] label, div[data-testid="stTextInput"] label, div[data-testid="stNumberInput"] label { color:#aab8cd; font-size:.78rem; }
-        div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > div { background:rgba(11,18,30,.86); border-color:rgba(166,184,218,.16); border-radius:10px; }
-        div[data-baseweb="select"] > div:hover, div[data-baseweb="input"] > div:hover, div[data-baseweb="textarea"] > div:hover { border-color:rgba(98,229,236,.4); }
-        div[data-testid="stPlotlyChart"] { border:1px solid rgba(166,184,218,.1); border-radius:17px; overflow:hidden; background:linear-gradient(145deg,rgba(15,23,39,.86),rgba(10,16,27,.78)); box-shadow:0 12px 35px rgba(0,0,0,.12); }
-        div[data-testid="stPlotlyChart"] iframe { width:100% !important; }
-        [data-testid="stExpander"] { border:1px solid var(--line); border-radius:14px; background:rgba(15,23,38,.55); overflow:hidden; }
-        [data-testid="stExpander"] summary { overflow-wrap:anywhere; color:#dbe7f7; font-weight:650; }
-        [data-testid="stTabs"] [role="tablist"] { gap:.35rem; border-bottom:1px solid var(--line); }
-        [data-testid="stTabs"] button[role="tab"] { color:#9cacc1; border-radius:10px 10px 0 0; padding:.55rem .9rem; }
-        [data-testid="stTabs"] button[role="tab"][aria-selected="true"] { color:var(--cyan); border-bottom-color:var(--cyan); }
-        div[data-testid="stAlert"] { border-radius:13px; border:1px solid var(--line); background:rgba(17,27,44,.9); }
+        .hero-kicker { color:var(--muted); font-size:.67rem; font-weight:650; letter-spacing:.12em; text-transform:uppercase; }
+        .session-badge { display:inline-flex; align-items:center; gap:.45rem; padding:.34rem .66rem; border:1px solid var(--line); border-radius:999px; background:#f8fafc; color:#344255; font-size:.7rem; }
+        .session-dot { width:7px; height:7px; display:inline-block; border-radius:50%; background:#7c8796; }
+        .session-badge.open .session-dot { background:var(--orange); }
+        .hero-title { color:var(--ink); font-size:clamp(1.8rem,3.3vw,2.6rem); font-weight:760; letter-spacing:-.05em; margin:.55rem 0 0; line-height:1.1; }
+        .hero-title .hero-accent { color:var(--orange); }
+        .hero-sub { color:#435267; margin:.45rem 0 .8rem; line-height:1.55; }
+        .hero-meta { display:flex; flex-wrap:wrap; gap:.45rem; }
+        .hero-chip { display:inline-flex; align-items:center; gap:.35rem; padding:.4rem .58rem; border:1px solid var(--line); border-radius:8px; background:#f8fafc; color:#344255; font-size:.68rem; }
+        .hero-chip b { color:var(--ink); font-weight:650; }
+        .metric-card,div[data-testid="stMetric"] { color:var(--ink); border:1px solid var(--line); border-radius:12px; background:var(--surface); box-shadow:0 2px 8px rgba(24,34,48,.035); }
+        .metric-card { min-height:96px; padding:14px 15px; }
+        .metric-card:hover { border-color:#d29a70; box-shadow:0 4px 14px rgba(24,34,48,.07); }
+        .metric-label,div[data-testid="stMetricLabel"] { color:var(--muted); font-size:.72rem; }
+        .metric-value,div[data-testid="stMetricValue"] { color:var(--ink); font-weight:700; overflow-wrap:anywhere; }
+        .metric-change { margin-top:5px; font-size:.74rem; font-weight:650; }
+        div[data-testid="stMetricDelta"] { color:var(--orange) !important; }
+        div[data-testid="stMetricDelta"] svg { fill:currentColor; }
+        .small-note { color:var(--muted); font-size:.78rem; line-height:1.55; }
+        .panel { padding:16px 18px; border:1px solid var(--line); border-radius:13px; background:var(--surface); box-shadow:0 2px 8px rgba(24,34,48,.035); }
+        .info-note { display:flex; align-items:flex-start; gap:.62rem; padding:.75rem .85rem; border:1px solid #e6c5a7; border-left:3px solid var(--orange); border-radius:10px; background:#fff7ed; color:#66340f; font-size:.83rem; line-height:1.55; }
+        .info-note-mark { display:grid; place-items:center; flex:0 0 19px; width:19px; height:19px; margin-top:1px; border:1px solid #d29a70; border-radius:50%; color:#7b3a12; font-size:.7rem; font-weight:700; }
+        .news-card { padding:13px 14px; margin:0 0 .5rem; border:1px solid var(--line); border-left:3px solid var(--teal); border-radius:11px; background:var(--surface); }
+        .news-card:hover { border-color:#b8cac9; border-left-color:var(--teal); background:#fbfdfd; }
+        .news-meta { color:var(--muted); font-size:.64rem; letter-spacing:.055em; line-height:1.6; margin-bottom:7px; text-transform:uppercase; }
+        .news-title { color:var(--ink); font-size:.9rem; font-weight:700; line-height:1.45; overflow-wrap:anywhere; }
+        .news-summary { color:#435267; font-size:.82rem; line-height:1.55; margin-top:6px; overflow-wrap:anywhere; }
+        .news-card a { color:#17615f !important; text-decoration:none; }
+        .news-card a:hover { color:#7b3a12 !important; text-decoration:underline; }
+        .source-chip { display:inline-block; padding:.16rem .42rem; margin-right:.35rem; border:1px solid #d1dae1; border-radius:999px; background:#f1f5f7; color:#344255; font-size:.62rem; }
+        .stButton button,.stDownloadButton button,.stLinkButton button { color:#fff; background:var(--orange); border:1px solid var(--orange); border-radius:9px; box-shadow:none; }
+        .stButton button:hover,.stDownloadButton button:hover,.stLinkButton button:hover { color:#fff; background:#873c0f; border-color:#873c0f; }
+        .stButton button:focus-visible,.stDownloadButton button:focus-visible,.stLinkButton button:focus-visible { outline:3px solid #f1b47f; outline-offset:2px; }
+        div[role="radiogroup"] label { color:#344255; background:#fff; border-color:var(--line); }
+        div[role="radiogroup"] label:hover { border-color:#c87a43; }
+        div[role="radiogroup"] label:has(input:checked) { color:#77380f !important; border-color:#e5b38f !important; background:var(--orange-soft) !important; }
+        .st-key-dashboard_section [role="radiogroup"] { gap:.25rem; padding:.35rem; border:1px solid var(--line); border-radius:11px; background:#fff; }
+        .st-key-dashboard_section [role="radiogroup"] label { border:1px solid transparent; background:transparent; }
+        input[type="radio"],input[type="checkbox"] { accent-color:var(--orange) !important; }
+        [data-baseweb="tag"],div[data-testid="stMultiSelect"] [data-baseweb="tag"] { color:#542b12 !important; background:#ffead8 !important; border-color:#e5b38f !important; }
+        [data-baseweb="tag"] *,div[data-testid="stMultiSelect"] [data-baseweb="tag"] * { color:#542b12 !important; fill:#542b12 !important; }
+        [role="option"][aria-selected="true"] { color:#542b12 !important; background:#ffead8 !important; }
+        div[data-testid="stSelectbox"] label,div[data-testid="stMultiSelect"] label,div[data-testid="stTextInput"] label,div[data-testid="stNumberInput"] label,div[data-testid="stDateInput"] label { color:#344255; }
+        div[data-baseweb="select"] > div,div[data-baseweb="input"] > div,div[data-baseweb="textarea"] > div { color:var(--ink); background:#fff; border-color:#cbd5df; }
+        div[data-baseweb="select"] > div:hover,div[data-baseweb="input"] > div:hover,div[data-baseweb="textarea"] > div:hover { border-color:var(--orange); }
+        div[data-testid="stPlotlyChart"] { border:1px solid var(--line); border-radius:12px; background:#fff; }
+        [data-testid="stExpander"] { border:1px solid var(--line); border-radius:11px; background:#fff; }
+        [data-testid="stExpander"] summary { color:var(--ink); }
+        [data-testid="stTabs"] [role="tablist"] { border-bottom-color:var(--line); }
+        [data-testid="stTabs"] button[role="tab"] { color:var(--muted); }
+        [data-testid="stTabs"] button[role="tab"][aria-selected="true"] { color:#7b3a12; border-bottom-color:var(--orange); }
+        div[data-testid="stAlert"],div[data-testid="stDataFrame"] { border-color:var(--line); background:#fff; }
         hr { border-color:var(--line); }
-        ::selection { color:#071017; background:var(--cyan); }
-        ::-webkit-scrollbar { width:9px; height:9px; }
-        ::-webkit-scrollbar-thumb { background:rgba(139,158,190,.28); border-radius:9px; }
-        ::-webkit-scrollbar-thumb:hover { background:rgba(98,229,236,.42); }
-        @media (max-width: 768px) {
-            .block-container { padding:1rem .8rem 3rem; }
-            .hero-shell { padding:1.15rem 1rem 1rem; border-radius:18px; }
+        ::selection { color:#fff; background:var(--orange); }
+        @media (max-width:768px) {
+            .block-container { padding:1rem .8rem 2.5rem; }
+            .hero-shell { padding:1rem; border-radius:12px; }
             .hero-topline { align-items:flex-start; flex-direction:column; gap:.65rem; }
-            .hero-title { font-size:2.25rem; letter-spacing:-.06em; }
-            .hero-sub { font-size:.84rem; line-height:1.55; }
-            .hero-chip { font-size:.61rem; }
+            .hero-title { font-size:2rem; }
+            .hero-chip { font-size:.68rem; }
             [data-testid="stHorizontalBlock"] { flex-wrap:wrap !important; gap:.65rem !important; }
             [data-testid="stHorizontalBlock"] > [data-testid="column"] { flex:1 1 100% !important; min-width:100% !important; }
-            div[data-testid="stMetric"] { min-height:0; padding:.72rem .82rem; }
-            div[data-testid="stMetricValue"] { font-size:1.1rem; }
             .st-key-dashboard_section [role="radiogroup"] { flex-wrap:wrap; gap:.28rem; }
-            .st-key-dashboard_section [role="radiogroup"] label { padding:.42rem .62rem; font-size:.73rem; }
-            div[role="radiogroup"] { flex-wrap:wrap; gap:.35rem; }
-            div[role="radiogroup"] label { padding:.32rem .58rem; }
-            .stButton button, .stDownloadButton button { min-height:44px; width:100%; }
-            .news-meta { line-height:1.65; }
-            .source-chip { margin-bottom:4px; }
-            div[data-testid="stDataFrame"] { max-width:100%; overflow-x:auto; }
-            div[data-testid="stPlotlyChart"] { margin:.3rem 0; }
+            .st-key-dashboard_section [role="radiogroup"] label { padding:.42rem .58rem; font-size:.78rem; }
+            .stButton button,.stDownloadButton button { min-height:44px; }
         }
-        @media (max-width: 420px) {
+        @media (max-width:420px) {
             .block-container { padding-left:.55rem; padding-right:.55rem; }
-            .hero-title { font-size:1.9rem; }
+            .hero-title { font-size:1.75rem; }
             .hero-chip { width:100%; }
-            .panel { padding:14px; }
+            .panel { padding:13px; }
             .metric-value { font-size:1.24rem; }
-            [data-testid="stTabs"] button[role="tab"] { padding:.45rem .62rem; font-size:.78rem; }
+            [data-testid="stTabs"] button[role="tab"] { padding:.42rem .54rem; font-size:.78rem; }
         }
         </style>
         """,
         unsafe_allow_html=True,
     )
-
-
 def london_now() -> datetime:
     return datetime.now(TIMEZONE)
 
 
-def format_number(value: object, decimals: int = 2) -> str:
+def finite_float(value: object) -> float | None:
     try:
         number = float(value)
-        return f"{number:,.{decimals}f}" if pd.notna(number) else "—"
-    except (TypeError, ValueError):
-        return "—"
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return number if np.isfinite(number) else None
+
+
+def ticker_option_label(symbol: str, details: dict) -> str:
+    parts = [str(symbol).strip(), str(details.get("name") or "").strip(), str(details.get("exchange") or "").strip()]
+    return " · ".join(part for part in parts if part)
+
+
+def format_number(value: object, decimals: int = 2) -> str:
+    number = finite_float(value)
+    return f"{number:,.{decimals}f}" if number is not None else "—"
 
 
 def format_percent(value: object) -> str:
-    try:
-        number = float(value)
-        return f"{number:+.2f}%" if pd.notna(number) else "—"
-    except (TypeError, ValueError):
-        return "—"
+    number = finite_float(value)
+    return f"{number:+.2f}%" if number is not None else "—"
 
 
 def render_metric_card(label: str, value: str, change: float | None = None, detail: str = "") -> None:
     change_html = ""
-    if change is not None and pd.notna(change):
-        color = "#ffb36b" if change >= 0 else "#ff8e9b"
-        change_html = f'<div class="metric-change" style="color:{color}">{format_percent(change)} today</div>'
+    change_value = finite_float(change)
+    if change_value is not None:
+        color = "#b95413" if change_value >= 0 else "#b53c4b"
+        change_html = f'<div class="metric-change" style="color:{color}">{format_percent(change_value)} today</div>'
     detail_html = f'<div class="small-note">{escape(detail)}</div>' if detail else ""
     st.markdown(
         f'<div class="metric-card"><div class="metric-label">{escape(label)}</div>'
@@ -288,11 +266,43 @@ def open_forecast_lab(symbol: str) -> None:
     if not symbol:
         return
     st.session_state["forecast_ticker"] = symbol
+    st.session_state.pop("forecast_ticker_choice", None)
     st.session_state["dashboard_section"] = "Forecast lab"
+
+
+def clear_forecast_choice() -> None:
+    st.session_state.pop("forecast_ticker_choice", None)
 
 
 def clear_company_choice() -> None:
     st.session_state.pop("company_explorer_choice", None)
+
+
+def select_saved_company() -> None:
+    symbol = str(st.session_state.get("company_watchlist_pick") or "").strip().upper()
+    if not symbol or symbol == "CHOOSE A SAVED COMPANY":
+        return
+    st.session_state["company_explorer_query"] = symbol
+    st.session_state["company_explorer_symbol"] = symbol
+    st.session_state.pop("company_explorer_choice", None)
+    st.session_state["company_watchlist_pick"] = "Choose a saved company"
+
+
+def toggle_company_watchlist(symbol: str, access_token: str) -> None:
+    ticker = str(symbol or "").strip().upper()
+    try:
+        current = load_watchlist(access_token)
+        if ticker in current:
+            updated = [item for item in current if item != ticker]
+            save_watchlist(updated, access_token)
+            st.session_state["company_watchlist_notice"] = ("success", f"{ticker} removed from your starred companies.")
+            if st.session_state.get("company_watchlist_pick") == ticker:
+                st.session_state["company_watchlist_pick"] = "Choose a saved company"
+        else:
+            save_watchlist([*current, ticker], access_token)
+            st.session_state["company_watchlist_notice"] = ("success", f"{ticker} added to your starred companies.")
+    except ValueError as error:
+        st.session_state["company_watchlist_notice"] = ("error", f"Watchlist update failed: {error}")
 
 
 def render_news_card(article: dict) -> None:
@@ -348,7 +358,7 @@ def latest_bar_date(history: pd.DataFrame) -> datetime.date | None:
 
 def data_freshness_text(date_value: datetime.date | None, now: datetime) -> str:
     if date_value is None:
-        return "Price data unavailable"
+        return "No benchmark bars returned"
     days_old = (now.date() - date_value).days
     if days_old <= 1:
         return f"Latest daily bar: {date_value:%d %b}"
@@ -360,7 +370,7 @@ def data_freshness_text(date_value: datetime.date | None, now: datetime) -> str:
 def headline_freshness(articles: list[dict], now: datetime) -> str:
     published = [item.get("published") for item in articles if item.get("published")]
     if not published:
-        return "Headline timestamps unavailable"
+        return "No timestamped headlines"
     newest = max(published)
     if newest.tzinfo is None:
         newest = newest.replace(tzinfo=TIMEZONE)
@@ -378,12 +388,13 @@ def load_benchmarks(region_name: str) -> list[dict]:
         history = fetch_history(symbol, period="5d", adjusted=False)
         if history.empty or "Close" not in history:
             continue
-        close = pd.to_numeric(history["Close"], errors="coerce").dropna()
+        close = pd.to_numeric(history["Close"], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+        close = close[close > 0]
         if close.empty:
             continue
         latest = float(close.iloc[-1])
         previous = float(close.iloc[-2]) if len(close) > 1 else None
-        change = (latest / previous - 1) * 100 if previous else None
+        change = (latest / previous - 1) * 100 if previous is not None and previous > 0 else None
         rows.append(
             {
                 "symbol": symbol,
@@ -396,39 +407,6 @@ def load_benchmarks(region_name: str) -> list[dict]:
     return rows
 
 
-def get_daily_change(symbol: str) -> float | None:
-    history = fetch_history(symbol, period="5d", adjusted=False)
-    close = pd.to_numeric(history.get("Close", pd.Series(dtype=float)), errors="coerce").dropna()
-    if len(close) < 2:
-        return None
-    return float((close.iloc[-1] / close.iloc[-2] - 1) * 100)
-
-
-def get_volume_multiple(history: pd.DataFrame, current_volume: object = None) -> float | None:
-    if history.empty or "Volume" not in history:
-        return None
-    volumes = pd.to_numeric(history["Volume"], errors="coerce").dropna()
-    if len(volumes) < 6:
-        return None
-    reference = float(volumes.iloc[:-1].tail(20).mean())
-    try:
-        current = float(current_volume)
-        if pd.isna(current):
-            raise ValueError
-    except (TypeError, ValueError):
-        current = float(volumes.iloc[-1])
-    return current / reference if reference > 0 else None
-
-
-def format_quote_time(value: object) -> str:
-    if value is None or pd.isna(value):
-        return "—"
-    try:
-        return pd.Timestamp(value).to_pydatetime().astimezone(TIMEZONE).strftime("%d %b %H:%M")
-    except (TypeError, ValueError, OverflowError):
-        return "—"
-
-
 def render_header(region_name: str, now: datetime, benchmarks: list[dict], market_news: list[dict]) -> None:
     session, session_detail = market_session_status(region_name, now)
     benchmark_date = max((row["as_of"] for row in benchmarks if row.get("as_of")), default=None)
@@ -437,28 +415,26 @@ def render_header(region_name: str, now: datetime, benchmarks: list[dict], marke
     session_class = "open" if session == "Likely open" else "closed"
     st.markdown(
         f'<section class="hero-shell">'
-        f'<div class="hero-topline"><div class="hero-kicker">◈ &nbsp; Market Brief / Daily intelligence</div>'
+        f'<div class="hero-topline"><div class="hero-kicker">MARKET BRIEF &nbsp;·&nbsp; DAILY INTELLIGENCE</div>'
         f'<div class="session-badge {session_class}"><span class="session-dot"></span>{escape(session)}</div></div>'
-        f'<h1 class="hero-title">Markets, <span class="hero-accent">decoded.</span></h1>'
-        f'<p class="hero-sub">Prices, catalysts, risk signals and your portfolio — gathered into one clear view.</p>'
+        f'<h1 class="hero-title">Your markets, <span class="hero-accent">in context.</span></h1>'
+        f'<p class="hero-sub">Daily prices, trusted headlines, company research and your private portfolio in one place.</p>'
         f'<div class="hero-meta">'
-        f'<span class="hero-chip">REGION <b>{escape(region_name)}</b></span>'
-        f'<span class="hero-chip">SESSION <b>{escape(session_detail)}</b></span>'
-        f'<span class="hero-chip">PRICES <b>{escape(price_status)}</b></span>'
-        f'<span class="hero-chip">NEWS <b>{escape(news_status)}</b></span>'
-        f'<span class="hero-chip">AS OF <b>{now:%d %b %Y · %H:%M} LONDON</b></span>'
+        f'<span class="hero-chip">Market <b>{escape(region_name)}</b></span>'
+        f'<span class="hero-chip">Prices <b>{escape(price_status)}</b></span>'
+        f'<span class="hero-chip">News <b>{escape(news_status)}</b></span>'
+        f'<span class="hero-chip">Updated <b>{now:%d %b · %H:%M} London</b></span>'
         f'</div></section>',
         unsafe_allow_html=True,
     )
-    if session == "Likely open":
-        st.caption("Session estimate uses usual trading hours; holidays are not checked. Yahoo prices are daily bars, not live quotes.")
+    st.caption(f"{session_detail}. Prices are Yahoo Finance daily bars and can be delayed; session hours do not account for exchange holidays.")
     if benchmark_date and (now.date() - benchmark_date).days > 4:
-        st.warning("The latest benchmark data is several days old. Refresh later or check Yahoo Finance directly.")
+        st.warning("The latest available benchmark bar is several days old. The app labels prices by their actual bar date.")
 
 
-def render_price_history(history: pd.DataFrame, title: str, color: str = "#62e5ec") -> None:
+def render_price_history(history: pd.DataFrame, title: str, color: str = "#167b78") -> None:
     if history.empty or "Close" not in history:
-        render_empty("Price history is temporarily unavailable.")
+        render_info("Yahoo Finance returned no daily bars, so the chart is omitted.")
         return
     figure = go.Figure(
         go.Scatter(
@@ -468,7 +444,7 @@ def render_price_history(history: pd.DataFrame, title: str, color: str = "#62e5e
             name=title,
             line={"color": color, "width": 2.2},
             fill="tozeroy",
-            fillcolor="rgba(98,229,236,.07)",
+            fillcolor="rgba(22,123,120,.08)",
         )
     )
     figure.update_layout(
@@ -477,9 +453,9 @@ def render_price_history(history: pd.DataFrame, title: str, color: str = "#62e5e
         margin={"l": 10, "r": 12, "t": 50, "b": 18},
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font={"color": "#91a2b6", "family": "Manrope"},
+        font={"color": "#526173", "family": "Manrope"},
         xaxis={"showgrid": False, "zeroline": False},
-        yaxis={"gridcolor": "rgba(145,162,182,.12)", "zeroline": False, "tickformat": ",.0f"},
+        yaxis={"gridcolor": "rgba(71,85,105,.14)", "zeroline": False, "tickformat": ",.0f"},
         showlegend=False,
         hovermode="x unified",
     )
@@ -495,40 +471,101 @@ def market_lens_figure(history: pd.DataFrame, title: str, visible_sessions: int,
             y=indicators["Close"],
             mode="lines",
             name=title,
-            line={"color": "#62e5ec", "width": 2.4},
+            line={"color": "#167b78", "width": 2.4},
             fill="tozeroy",
-            fillcolor="rgba(98,229,236,.045)",
+            fillcolor="rgba(22,123,120,.06)",
         )
     )
     if "Bollinger Bands" in overlays and {"BB_lower", "BB_upper"}.issubset(indicators.columns):
-        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["BB_lower"], name="Lower band", line={"color": "rgba(155,140,255,.25)", "width": 1}, hoverinfo="skip"))
-        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["BB_upper"], name="Bollinger range", line={"color": "rgba(155,140,255,.25)", "width": 1}, fill="tonexty", fillcolor="rgba(155,140,255,.08)"))
+        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["BB_lower"], name="Lower band", line={"color": "rgba(113,85,168,.22)", "width": 1}, hoverinfo="skip"))
+        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["BB_upper"], name="Bollinger range", line={"color": "rgba(113,85,168,.22)", "width": 1}, fill="tonexty", fillcolor="rgba(113,85,168,.08)"))
     if "SMA 20" in overlays and "SMA_20" in indicators:
-        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_20"], name="SMA 20", line={"color": "#9b8cff", "width": 1.3}))
+        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_20"], name="SMA 20", line={"color": "#7155a8", "width": 1.3}))
     if "SMA 50" in overlays and "SMA_50" in indicators:
-        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_50"], name="SMA 50", line={"color": "#ffb36b", "width": 1.3}))
+        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_50"], name="SMA 50", line={"color": "#b95413", "width": 1.3}))
     figure.update_layout(
         height=390,
         margin={"l": 10, "r": 12, "t": 68, "b": 24},
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font={"color": "#91a2b6", "family": "Manrope", "size": 11},
+        font={"color": "#526173", "family": "Manrope", "size": 11},
         xaxis={"showgrid": False, "zeroline": False, "rangeslider": {"visible": False}},
-        yaxis={"gridcolor": "rgba(145,162,182,.12)", "zeroline": False, "tickformat": ",.0f"},
-        title={"text": f"{title} · daily close", "x": 0.02, "xanchor": "left", "font": {"size": 15}},
+        yaxis={"gridcolor": "rgba(71,85,105,.14)", "zeroline": False, "tickformat": ",.0f"},
+        title={"text": f"{title} · daily price", "x": 0.02, "xanchor": "left", "font": {"size": 15}},
         legend={"orientation": "h", "y": 1.03, "x": 0, "font": {"size": 10}},
         hovermode="x unified",
     )
     return figure
 
 
-def render_news_desk(region_name: str, market_news: list[dict], now: datetime, feed_status: list[dict]) -> None:
-    st.markdown('<div class="section-label">The news desk</div>', unsafe_allow_html=True)
-    st.caption("Headlines and short feed summaries are attributed and link to the publisher. FT RSS shows story metadata; open FT to read subscriber articles. Source context is not proof of a price catalyst.")
+def render_market_pulse(
+    region_name: str,
+    benchmarks: list[dict],
+    market_news: list[dict],
+    now: datetime,
+    feed_status: list[dict],
+) -> None:
+    """Compact market and news desk, with missing provider fields omitted honestly."""
+    st.markdown('<div class="eyebrow">Markets</div>', unsafe_allow_html=True)
+    st.markdown("## Market & news")
+    st.caption("A concise market read, price trend and attributed headlines for the selected region.")
+
+    if benchmarks:
+        cards = st.columns(min(4, len(benchmarks)))
+        for column, row in zip(cards, benchmarks):
+            with column:
+                date_label = f"Daily bar · {row['as_of']:%d %b}" if row.get("as_of") else "Daily bar"
+                render_metric_card(str(row.get("label") or "Index"), format_number(row.get("price")), row.get("change"), date_label)
+    else:
+        render_info(f"Yahoo Finance returned no benchmark bars for {region_name}. Use Refresh market data to retry.")
+
+    main_symbol = next(iter(MARKET_REGIONS[region_name]["benchmarks"]))
+    main_label = MARKET_REGIONS[region_name]["benchmarks"][main_symbol]
+    history = fetch_history(main_symbol, period="1y", adjusted=True)
+    indicators = calculate_technical_indicators(history)
+    if not indicators.empty:
+        close = pd.to_numeric(indicators["Close"], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+        returns = close.pct_change().dropna()
+        risk_values: list[tuple[str, str, str]] = []
+        if len(close) >= 21:
+            risk_values.append(("20-session return", format_percent((close.iloc[-1] / close.iloc[-21] - 1) * 100), "close-to-close"))
+        if len(returns) >= 20:
+            annualized_volatility = returns.tail(20).std(ddof=1) * np.sqrt(252) * 100
+            risk_values.append(("20-session volatility", f"{annualized_volatility:.1f}%", "annualised · 252 sessions"))
+        if len(close) >= 2:
+            drawdown = (close.iloc[-1] / close.tail(252).max() - 1) * 100
+            risk_values.append(("Drawdown from sample high", format_percent(drawdown), "latest close vs 1-year sample high"))
+        latest_rsi = indicators["RSI_14"].iloc[-1] if "RSI_14" in indicators else np.nan
+        if pd.notna(latest_rsi):
+            risk_values.append(("RSI · 14", format_number(latest_rsi, 1), "momentum · scale 0–100"))
+        if risk_values:
+            st.markdown('<div class="section-label">Trend & risk</div>', unsafe_allow_html=True)
+            risk_cols = st.columns(min(4, len(risk_values)))
+            for column, (label, value, detail) in zip(risk_cols, risk_values):
+                with column:
+                    render_metric_card(label, value, detail=detail)
+
     source_names = sorted(
         {str(item.get("publisher") or "Unknown") for item in market_news}
         | {str(item.get("publisher") or "") for item in feed_status if item.get("publisher") and item.get("kind") != "News search"}
     )
+    topics = sorted({
+        topic
+        for article in market_news
+        for topic, terms in NEWS_TOPIC_TERMS.items()
+        if any(term in f" {article.get('title', '')} {article.get('summary', '')} ".lower() for term in terms)
+    })
+    with st.expander("Filter headlines", expanded=False):
+        filter_cols = st.columns([1.2, .9, 1.1, 1.5])
+        with filter_cols[0]:
+            source_filter = st.selectbox("Publisher", ["All sources", "Yahoo Finance stories", *source_names], key=f"market_source_{region_name}")
+        with filter_cols[1]:
+            age_filter = st.selectbox("Time range", ["24 hours", "3 days", "All available"], index=1, key=f"market_age_{region_name}")
+        with filter_cols[2]:
+            topic_filter = st.selectbox("Theme", ["All themes", *topics], key=f"market_topic_{region_name}")
+        with filter_cols[3]:
+            search = st.text_input("Search stories", placeholder="Company, rates, inflation…", key=f"market_search_{region_name}").strip().lower()
+
     def topic_for(article: dict) -> str:
         text = f" {article.get('title', '')} {article.get('summary', '')} ".lower()
         for topic, terms in NEWS_TOPIC_TERMS.items():
@@ -536,374 +573,102 @@ def render_news_desk(region_name: str, market_news: list[dict], now: datetime, f
                 return topic
         return "Other"
 
-    topic_names = sorted({topic_for(article) for article in market_news})
-    filter_cols = st.columns([1.1, .9, 1.25, 1.6])
-    with filter_cols[0]:
-        source_filter = st.selectbox("Website / source", ["All sources", "Yahoo Finance · partner stories", *source_names], key=f"news_source_{region_name}")
-    with filter_cols[1]:
-        age_filter = st.selectbox("Time window", ["24 hours", "3 days", "All available"], index=1, key=f"news_age_{region_name}")
-    with filter_cols[2]:
-        topic_filter = st.selectbox("Theme", ["All themes", *topic_names], key=f"news_topic_{region_name}")
-    with filter_cols[3]:
-        search = st.text_input("Search headlines", placeholder="Company, rates, inflation…", key=f"news_search_{region_name}").strip().lower()
-    chosen_site = next((item for item in feed_status if item.get("publisher") == source_filter), None)
-    if source_filter == "Yahoo Finance · partner stories":
-        st.link_button("Open Yahoo Finance news ↗", "https://finance.yahoo.com/news/")
-    elif chosen_site:
-        st.link_button(f"Open {source_filter} website ↗", chosen_site["site_url"])
-
     cutoff_hours = {"24 hours": 24, "3 days": 72}.get(age_filter)
     filtered: list[dict] = []
     for article in market_news:
-        if source_filter == "Yahoo Finance · partner stories":
-            if article.get("source_kind") != "Yahoo Finance":
-                continue
-        elif source_filter != "All sources" and article.get("publisher") != source_filter:
+        if source_filter == "Yahoo Finance stories" and article.get("source_kind") != "Yahoo Finance":
+            continue
+        if source_filter not in {"All sources", "Yahoo Finance stories"} and article.get("publisher") != source_filter:
             continue
         if topic_filter != "All themes" and topic_for(article) != topic_filter:
             continue
         published = article.get("published")
-        if cutoff_hours is not None and published is not None:
+        if cutoff_hours is not None:
+            if published is None:
+                continue
             if published.tzinfo is None:
                 published = published.replace(tzinfo=TIMEZONE)
-            if (now - published.astimezone(TIMEZONE)).total_seconds() > cutoff_hours * 3600:
+            age = (now - published.astimezone(TIMEZONE)).total_seconds() / 3600
+            if age < 0 or age > cutoff_hours:
                 continue
         if search and search not in f"{article.get('title', '')} {article.get('summary', '')} {article.get('publisher', '')}".lower():
             continue
         filtered.append(article)
     filtered.sort(key=lambda item: item.get("published") or datetime.min.replace(tzinfo=TIMEZONE), reverse=True)
 
-    visible_publishers = len({str(item.get("publisher") or "Unknown") for item in filtered})
-    newest = next((item.get("published_label") for item in filtered if item.get("published_label")), "—")
-    overview = st.columns(3)
-    with overview[0]:
-        render_metric_card("Stories in view", f"{len(filtered):,}", detail=age_filter)
-    with overview[1]:
-        render_metric_card("Publishers represented", f"{visible_publishers}", detail="editorial + official sources")
-    with overview[2]:
-        render_metric_card("Newest timestamp", newest, detail="London time where supplied")
+    chart_col, news_col = st.columns([1.4, 1], gap="large")
+    with chart_col:
+        st.markdown(f'<div class="section-label">{escape(main_label)} · price history</div>', unsafe_allow_html=True)
+        range_cols = st.columns([.8, 1.4])
+        with range_cols[0]:
+            range_name = st.selectbox("Chart period", ["1M", "3M", "6M", "1Y"], index=3, key=f"market_range_{region_name}")
+        with range_cols[1]:
+            overlays = st.multiselect("Indicators", ["SMA 20", "SMA 50", "Bollinger Bands"], default=["SMA 20"], key=f"market_overlays_{region_name}")
+        if history.empty:
+            render_info("No daily bars were returned for the benchmark, so the chart and technical metrics are omitted.")
+        else:
+            visible_sessions = {"1M": 21, "3M": 63, "6M": 126, "1Y": 252}[range_name]
+            st.plotly_chart(market_lens_figure(history, main_label, visible_sessions, overlays), use_container_width=True, config={"displayModeBar": False, "responsive": True})
+            st.caption(f"Latest chart bar: {latest_bar_date(history):%d %b %Y}. Moving averages and volatility describe historical prices; they are not forecasts.")
+    with news_col:
+        st.markdown('<div class="section-label">Latest headlines</div>', unsafe_allow_html=True)
+        if filtered:
+            for article in filtered[:4]:
+                render_news_card(article)
+            st.caption(f"Showing {min(4, len(filtered))} of {len(filtered)} matching stories. RSS headlines link to the publisher; FT subscriber stories open on FT.")
+        elif market_news:
+            render_info("No stories match these filters. Widen the time range or clear the search.")
+        else:
+            render_info("No stories arrived from the current feeds. Open source coverage below to see which feeds responded.")
 
-    topic_counts = pd.Series([topic_for(article) for article in market_news]).value_counts().drop(labels=["Other"], errors="ignore").head(6)
-    if not topic_counts.empty:
-        topic_figure = go.Figure(go.Bar(
-            x=topic_counts.values,
-            y=topic_counts.index,
-            orientation="h",
-            marker={"color": ["#62e5ec", "#9b8cff", "#d38cff", "#ffb36b", "#6dd9da", "#ff8e9b"][:len(topic_counts)]},
-            text=topic_counts.values,
-            textposition="outside",
-            hovertemplate="%{y}: %{x} headlines<extra></extra>",
-        ))
-        topic_figure.update_layout(
-            height=max(170, 38 * len(topic_counts)),
-            margin={"l": 8, "r": 30, "t": 42, "b": 8},
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            font={"color": "#91a2b6", "family": "Manrope", "size": 11},
-            xaxis={"showgrid": False, "visible": False},
-            yaxis={"showgrid": False, "autorange": "reversed"},
-            showlegend=False,
-            title={"text": "Headline count by theme", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#eaf0f6"}},
-        )
-        theme_col, explanation_col = st.columns([1.2, 1])
-        with theme_col:
-            st.markdown('<div class="section-label">Keyword topic pulse</div>', unsafe_allow_html=True)
-            st.plotly_chart(topic_figure, use_container_width=True, config={"displayModeBar": False, "responsive": True})
-        with explanation_col:
-            st.markdown('<div class="section-label">How to read it</div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel small-note">Themes are grouped from words in the headline and short feed summary. This is a navigation aid, not sentiment analysis and not a measure of market impact. Use the theme filter above to narrow the story list.</div>', unsafe_allow_html=True)
-
-    with st.expander("Sources and coverage", expanded=not bool(market_news)):
-        st.markdown("**Editorial headlines:** Financial Times Markets, Financial Times Companies, BBC Business and Yahoo Finance. **Official updates:** " + ", ".join(sorted({str(item.get("publisher")) for item in market_news if item.get("source_kind") == "Official source"})) + ".")
-        st.caption("FT and BBC feeds provide headline metadata and summaries, not article bodies. Review publisher terms before hosting or redistributing the dashboard. Official central-bank feeds add primary announcements, not independent reporting.")
+    with st.expander(f"All matching headlines · {len(filtered)}", expanded=False):
+        if filtered:
+            for article in filtered[4:30]:
+                render_news_card(article)
+            if len(filtered) > 30:
+                st.caption(f"Showing the first 30 of {len(filtered)} results.")
+        else:
+            st.caption("There are no matching stories to show.")
+    with st.expander("Source coverage and data notes", expanded=False):
         if feed_status:
             source_table = pd.DataFrame(
-                [
-                    {
-                        "News source": item["publisher"],
-                        "Type": item["kind"],
-                        "Feed status": f"{item['status']} · {item['stories']} items",
-                        "Website": item["site_url"],
-                    }
-                    for item in feed_status
-                ]
+                [{"Source": item.get("publisher"), "Type": item.get("kind"), "Status": item.get("status"), "Items": item.get("stories", 0)} for item in feed_status]
             )
-            st.dataframe(source_table, hide_index=True, use_container_width=True, column_config={"Website": st.column_config.LinkColumn("Website", display_text="Open ↗")})
-        st.caption("Yahoo Finance search and publisher RSS sources are cached for 15 minutes. Use Refresh market data in the sidebar to retry unavailable feeds.")
-
-    if not market_news:
-        render_empty("No stories arrived from the current feeds. Check the availability table above and refresh later.")
-        return
-    if not filtered:
-        render_empty("Nothing matches those filters. Try a wider time window or clear the search.")
-        return
-    for article in filtered[:30]:
-        render_news_card(article)
-    if len(filtered) > 30:
-        st.caption(f"Showing 30 of {len(filtered)} matching stories.")
+            st.dataframe(source_table, hide_index=True, use_container_width=True)
+        st.caption("Market news combines Yahoo Finance search results, Financial Times and BBC RSS metadata, and official central-bank feeds. A headline association is context to investigate, not proof of a price catalyst.")
+        st.caption("Price history is fetched from Yahoo Finance and cached briefly. Daily bars may be delayed; use the displayed bar date when interpreting the chart.")
 
 
-def render_market_pulse(region_name: str, benchmarks: list[dict], market_news: list[dict]) -> None:
-    st.markdown('<div class="section-label">Market snapshot</div>', unsafe_allow_html=True)
-    if benchmarks:
-        cards = st.columns(min(4, len(benchmarks)))
-        for column, row in zip(cards, benchmarks):
-            with column:
-                render_metric_card(row["label"], format_number(row["price"]), row.get("change"), f"Daily bar · {row.get('as_of') or 'date unavailable'}")
+def render_company_explorer(region_name: str, access_token: str) -> None:
+    st.markdown('<div class="eyebrow">Research</div>', unsafe_allow_html=True)
+    st.markdown("## Company explorer")
+    st.caption("Search a company, open one of your starred tickers, and inspect the price history, technical indicators and related stories.")
+
+    try:
+        watchlist = load_watchlist(access_token)
+    except ValueError as error:
+        watchlist = []
+        render_info(f"Saved companies could not be loaded: {error}")
+    notice = st.session_state.pop("company_watchlist_notice", None)
+    if notice:
+        kind, message = notice
+        (st.error if kind == "error" else st.success)(message)
+    if watchlist:
+        st.selectbox(
+            "★ Starred companies",
+            ["Choose a saved company", *watchlist],
+            key="company_watchlist_pick",
+            on_change=select_saved_company,
+        )
     else:
-        render_empty(f"No {region_name} benchmark prices are available right now.")
-
-    main_symbol = next(iter(MARKET_REGIONS[region_name]["benchmarks"]))
-    main_label = MARKET_REGIONS[region_name]["benchmarks"][main_symbol]
-    history = fetch_history(main_symbol, period="1y", adjusted=True)
-    indicators = calculate_technical_indicators(history)
-    if not indicators.empty:
-        close = pd.to_numeric(indicators["Close"], errors="coerce").dropna()
-        returns = close.pct_change().dropna()
-        move_20 = float((close.iloc[-1] / close.iloc[-21] - 1) * 100) if len(close) >= 21 else None
-        volatility_20 = float(returns.tail(20).std(ddof=1) * (252 ** 0.5) * 100) if len(returns) >= 10 else None
-        drawdown_1y = float((close.iloc[-1] / close.tail(252).max() - 1) * 100) if len(close) > 1 else None
-        latest_rsi = indicators["RSI_14"].iloc[-1] if "RSI_14" in indicators else None
-        st.markdown('<div class="section-label">Trend & risk monitor</div>', unsafe_allow_html=True)
-        risk_cols = st.columns(4)
-        values = [
-            ("20-session return", format_percent(move_20), None, "directional context"),
-            ("Realised volatility · 20d", f"{volatility_20:.1f}%" if volatility_20 is not None else "—", None, "annualised from daily returns"),
-            ("Drawdown from 1y high", format_percent(drawdown_1y), None, "distance below recent peak"),
-            ("RSI · 14", format_number(latest_rsi, 1), None, "momentum measure · 0–100"),
-        ]
-        for column, (label, value, change, detail) in zip(risk_cols, values):
-            with column:
-                render_metric_card(label, value, change, detail)
-
-    chart_col, news_col = st.columns([1.5, 1], gap="large")
-    with chart_col:
-        st.markdown(f'<div class="section-label">{escape(main_label)} · market lens</div>', unsafe_allow_html=True)
-        range_cols = st.columns([1, 2.2])
-        with range_cols[0]:
-            range_name = st.radio("Chart range", ["1M", "3M", "6M", "1Y"], horizontal=True, key=f"lens_range_{region_name}")
-        with range_cols[1]:
-            overlays = st.multiselect("Overlays", ["SMA 20", "SMA 50", "Bollinger Bands"], default=["SMA 20", "SMA 50"], key=f"lens_overlays_{region_name}")
-        visible_sessions = {"1M": 21, "3M": 63, "6M": 126, "1Y": 252}[range_name]
-        if history.empty:
-            render_empty("Price history is temporarily unavailable.")
-        else:
-            st.plotly_chart(market_lens_figure(history, main_label, visible_sessions, overlays), use_container_width=True, config={"displayModeBar": False, "responsive": True})
-        st.caption("Realised volatility = standard deviation of the last 20 daily returns × √252. RSI, moving averages and bands describe historical behaviour; they are not forecasts.")
-
-    with news_col:
-        st.markdown('<div class="section-label">Latest across your sources</div>', unsafe_allow_html=True)
-        if market_news:
-            for article in market_news[:6]:
-                render_news_card(article)
-            st.button("Open News desk filters ↓", key="go_news_desk", on_click=lambda: st.session_state.update({"dashboard_section": "News desk"}))
-        else:
-            render_empty("No headlines are available. Refresh later or open the News desk to review source coverage.")
-
-
-def render_mover_details(mover: pd.Series, region_name: str, benchmark_move: float | None) -> None:
-    symbol = str(mover.get("symbol", ""))
-    if not symbol:
-        return
-    name = str(mover.get("name", symbol))
-    move = mover.get("change_pct")
-    relative = float(move) - benchmark_move if pd.notna(move) and benchmark_move is not None else None
-    with st.expander(f"{symbol} · {name} · {format_percent(move)}"):
-        context_col, action_col = st.columns([1.25, 1])
-        with context_col:
-            st.metric(f"Move relative to {region_name} index", format_percent(relative))
-            quote_label = format_quote_time(mover.get("quote_time"))
-            if quote_label != "—":
-                st.caption(f"Yahoo screener quote time: {quote_label} London")
-        with action_col:
-            st.button(
-                "Open full company analysis ↗",
-                key=f"company_explorer_mover_{region_name}_{symbol}",
-                use_container_width=True,
-                on_click=open_company_explorer,
-                args=(symbol,),
-            )
-            load_context = st.button("Load catalyst and volume context", key=f"context_{region_name}_{symbol}")
-        if not load_context:
-            st.caption("Open the details to see recent headlines, unusual volume, and sector comparison.")
-            return
-
-        with st.spinner(f"Loading context for {symbol}…"):
-            metadata = fetch_ticker_metadata(symbol)
-            history = fetch_history(symbol, period="3mo", adjusted=False)
-            articles = fetch_ticker_news(symbol, count=8)
-            sector = str(metadata.get("sector") or "")
-            etf = SECTOR_ETFS.get(sector.lower()) if region_name == "United States" else None
-            sector_move = get_daily_change(etf) if etf else None
-
-        average_volume_multiple = get_volume_multiple(history, mover.get("volume"))
-        info_cols = st.columns(3)
-        with info_cols[0]:
-            st.metric("Sector", sector or "Unavailable")
-        with info_cols[1]:
-            st.metric("Volume vs 20-session average", f"{average_volume_multiple:.1f}×" if average_volume_multiple is not None else "Unavailable")
-        with info_cols[2]:
-            sector_relative = float(move) - sector_move if pd.notna(move) and sector_move is not None else None
-            st.metric(f"Move relative to {etf or 'sector ETF'}", format_percent(sector_relative))
-        if history.empty:
-            st.caption("Daily price history was unavailable, so the volume comparison could not be calculated.")
-
-        driver, evidence = classify_headlines(articles)
-        st.markdown(f"**Possible headline context:** {driver}")
-        st.caption("Headline matches are evidence to review, not proof that a story caused the price move.")
-        if evidence:
-            for article in evidence[:3]:
-                render_news_card(article)
-        else:
-            render_empty("No recent, timestamped Yahoo Finance headline matched this ticker.")
-
-
-def render_mover_table(frame: pd.DataFrame, benchmark_move: float | None, region_name: str) -> None:
-    if frame.empty:
-        render_empty("Yahoo Finance did not return mover data. Try refreshing later; market holidays and quiet sessions can also leave the screen empty.")
-        return
-    table = frame.copy()
-    table["relative"] = table["change_pct"].map(
-        lambda value: float(value) - benchmark_move if pd.notna(value) and benchmark_move is not None else None
-    )
-    table["as_of"] = table["quote_time"].map(format_quote_time)
-    display = table[["symbol", "name", "price", "change_pct", "relative", "volume", "as_of"]].copy()
-    display.columns = ["Ticker", "Company", "Price", "Move", f"Vs {region_name} index", "Volume", "Quote time (London)"]
-    display["Price"] = display["Price"].map(lambda value: format_number(value, 2))
-    display["Move"] = display["Move"].map(format_percent)
-    display[f"Vs {region_name} index"] = display[f"Vs {region_name} index"].map(format_percent)
-    display["Volume"] = display["Volume"].map(lambda value: f"{int(value):,}" if pd.notna(value) else "—")
-    st.dataframe(display, hide_index=True, use_container_width=True)
-    for _, mover in table.iterrows():
-        render_mover_details(mover, region_name, benchmark_move)
-
-
-def render_movers(region_name: str, benchmarks: list[dict]) -> tuple[pd.DataFrame, pd.DataFrame]:
-    region_code = MARKET_REGIONS[region_name]["code"]
-    benchmark_move = benchmarks[0].get("change") if benchmarks else None
-    st.markdown('<div class="section-label">Top movers · selected market</div>', unsafe_allow_html=True)
-    if region_name == "United States":
-        st.caption("Yahoo’s predefined US day-gainer and day-loser screens use capitalization, price, and volume filters.")
-    else:
-        st.caption("Yahoo regional screens use market, price, market-capitalization, volume, and direction filters; coverage varies by exchange.")
-    count = st.slider("Companies per side", min_value=3, max_value=10, value=5, key=f"mover_count_{region_code}")
-    with st.spinner(f"Loading {region_name} gainers and decliners…"):
-        gainers = fetch_movers("gainers", count=count, region=region_code)
-        losers = fetch_movers("losers", count=count, region=region_code)
-    left, right = st.columns(2, gap="large")
-    with left:
-        st.markdown("### ↑  Leading gainers")
-        render_mover_table(gainers, benchmark_move, region_name)
-    with right:
-        st.markdown("### ↓  Leading decliners")
-        render_mover_table(losers, benchmark_move, region_name)
-    return gainers, losers
-
-
-def ticker_update(symbol: str, benchmark_move: float | None) -> dict | None:
-    history = fetch_history(symbol, period="3mo", adjusted=False)
-    if history.empty:
-        return None
-    close = pd.to_numeric(history["Close"], errors="coerce").dropna()
-    if close.empty:
-        return None
-    indicators = calculate_technical_indicators(history)
-    day_move = float((close.iloc[-1] / close.iloc[-2] - 1) * 100) if len(close) > 1 else None
-    month_move = float((close.iloc[-1] / close.iloc[-21] - 1) * 100) if len(close) >= 21 else None
-    latest = indicators.iloc[-1] if not indicators.empty else pd.Series(dtype=float)
-    volume_ratio = get_volume_multiple(history)
-    return {
-        "ticker": symbol,
-        "last_close": float(close.iloc[-1]),
-        "day_move": day_move,
-        "month_move": month_move,
-        "relative_move": day_move - benchmark_move if day_move is not None and benchmark_move is not None else None,
-        "rsi": latest.get("RSI_14"),
-        "volume_ratio": volume_ratio,
-        "as_of": latest_bar_date(history),
-        "history": history,
-        "indicators": indicators,
-    }
-
-
-def render_watchlist(region_name: str, benchmarks: list[dict], access_token: str) -> None:
-    st.markdown('<div class="section-label">Personal watchlist</div>', unsafe_allow_html=True)
-    st.caption("This watchlist is private to your signed-in account. Enter Yahoo Finance symbols separated by commas.")
-    tickers = load_watchlist(access_token)
-    with st.form("watchlist_form"):
-        ticker_text = st.text_input("Watchlist tickers", value=", ".join(tickers), placeholder="AAPL, MSFT, LLOY.L")
-        save_watchlist_clicked = st.form_submit_button("Save watchlist")
-    if save_watchlist_clicked:
-        try:
-            tickers = save_watchlist(normalize_watchlist(ticker_text.split(",")), access_token)
-            st.success("Watchlist saved.")
-        except ValueError as error:
-            st.error(str(error))
-    if not tickers:
-        render_empty("Add one or more tickers above to follow them here.")
-        return
-
-    benchmark_move = benchmarks[0].get("change") if benchmarks else None
-    with st.spinner("Refreshing watchlist prices and indicators…"):
-        updates = [ticker_update(symbol, benchmark_move) for symbol in tickers]
-    updates = [update for update in updates if update]
-    if not updates:
-        render_empty("No price history is available for the current watchlist.")
-        return
-
-    table = pd.DataFrame(
-        [
-            {
-                "Ticker": item["ticker"],
-                "Last close": format_number(item["last_close"]),
-                "Day move": format_percent(item["day_move"]),
-                "20-session return": format_percent(item["month_move"]),
-                f"Vs {region_name} today": format_percent(item["relative_move"]),
-                "RSI (14)": format_number(item["rsi"], 1),
-                "Volume / 20-day avg": f"{item['volume_ratio']:.1f}×" if item["volume_ratio"] is not None else "—",
-                "Price date": str(item["as_of"] or "—"),
-            }
-            for item in updates
-        ]
-    )
-    st.dataframe(table, hide_index=True, use_container_width=True)
-    for item in updates:
-        with st.expander(f"{item['ticker']} · latest update"):
-            info_cols = st.columns(4)
-            with info_cols[0]:
-                st.metric("Last close", format_number(item["last_close"]))
-            with info_cols[1]:
-                st.metric("20-session return", format_percent(item["month_move"]))
-            with info_cols[2]:
-                st.metric("RSI (14)", format_number(item["rsi"], 1))
-            with info_cols[3]:
-                st.metric("Volume vs average", f"{item['volume_ratio']:.1f}×" if item["volume_ratio"] is not None else "—")
-            st.button(
-                "Open full company analysis ↗",
-                key=f"company_explorer_watch_{item['ticker']}",
-                use_container_width=True,
-                on_click=open_company_explorer,
-                args=(item["ticker"],),
-            )
-            if st.button("Load latest headlines", key=f"watch_news_{item['ticker']}"):
-                articles = fetch_ticker_news(item["ticker"], count=5)
-                if articles:
-                    for article in articles[:3]:
-                        render_news_card(article)
-                else:
-                    render_empty("No ticker headlines are currently available.")
-
-
-def render_company_explorer(region_name: str) -> None:
-    st.markdown('<div class="section-label">Company explorer</div>', unsafe_allow_html=True)
-    st.markdown("### One company, all the context")
-    st.caption("Search a company or Yahoo Finance symbol, choose the exact match, then inspect its price trend, indicators, profile and related headlines.")
+        st.caption("Your starred companies will appear here for quick access.")
 
     query = st.text_input(
-        "Search company or ticker",
-        placeholder="For example, Apple, AAPL or LLOY.L",
+        "Search by company or ticker",
+        placeholder="Try Microsoft, MSFT or LLOY.L",
         key="company_explorer_query",
         on_change=clear_company_choice,
+        help="Choose a Yahoo Finance search result below to avoid selecting the wrong ticker.",
     ).strip()
     matches = search_tickers(query) if len(query) >= 2 else []
     known_symbol = str(st.session_state.get("company_explorer_symbol") or "").upper()
@@ -911,99 +676,136 @@ def render_company_explorer(region_name: str) -> None:
         if known_symbol and query.upper() == known_symbol:
             symbol = known_symbol
         else:
-            st.warning("Yahoo Finance company search is temporarily unavailable. Try again later.")
+            render_info("Yahoo Finance company search did not respond. Refresh market data and try again.")
             return
     elif not matches:
         if len(query) < 2:
-            st.caption("Type at least two characters to load matching companies in the dropdown.")
             return
-        render_info("No matching companies found. Try a company name or its Yahoo Finance symbol.")
+        render_info("No matching companies were returned. Check the spelling or add an exchange suffix such as .L.")
         return
     else:
         details = {match["symbol"]: match for match in matches}
         options = list(details)
         default_index = options.index(known_symbol) if known_symbol in details else 0
         symbol = st.selectbox(
-            "Choose a company",
+            "Select the exact company",
             options=options,
             index=default_index,
-            format_func=lambda item: f"{item} · {details[item]['name']} · {details[item]['exchange']}",
+            format_func=lambda item: ticker_option_label(item, details[item]),
             key="company_explorer_choice",
         )
         st.session_state["company_explorer_symbol"] = symbol
 
+    is_saved = symbol in watchlist
     metadata = fetch_ticker_metadata(symbol)
-    name = str(metadata.get("name") or symbol)
-    with st.spinner(f"Loading {name} price history and headlines…"):
-        history = fetch_history(symbol, period="2y", adjusted=False)
+    name = str(metadata.get("name") or details.get(symbol, {}).get("name") or symbol) if matches else str(metadata.get("name") or symbol)
+    with st.spinner(f"Loading {name} prices and headlines…"):
+        history = fetch_history(symbol, period="2y", adjusted=True)
         articles = fetch_ticker_news(symbol, count=10)
-    st.markdown(f"#### {escape(name)} <span class='small-note'>· {escape(symbol)}</span>", unsafe_allow_html=True)
-    st.link_button("Open Yahoo Finance profile ↗", f"https://finance.yahoo.com/quote/{quote(symbol, safe='')}/")
+
+    heading_col, star_col = st.columns([6, 1], vertical_alignment="center")
+    with heading_col:
+        st.markdown(f"### {escape(name)} <span class='small-note'>· {escape(symbol)}</span>", unsafe_allow_html=True)
+    with star_col:
+        st.button(
+            "★" if is_saved else "☆",
+            key=f"company_star_{symbol}",
+            help="Remove from your starred companies" if is_saved else "Add to your starred companies",
+            type="secondary",
+            on_click=toggle_company_watchlist,
+            args=(symbol, access_token),
+        )
+    st.link_button("Yahoo Finance profile ↗", f"https://finance.yahoo.com/quote/{quote(symbol, safe='')}/")
+
     if history.empty or "Close" not in history:
-        render_empty("Yahoo Finance did not return daily price history for this company. Its profile link and any available headlines are still below.")
+        render_info("Yahoo Finance returned no daily price bars for this ticker. The saved-company control and any returned headlines remain available.")
         if articles:
             for article in articles[:6]:
                 render_news_card(article)
-        else:
-            render_empty("No recent Yahoo Finance search headlines are available for this ticker.")
+        elif len(query) >= 2:
+            st.caption("No related headlines were returned for this ticker.")
         return
 
-    close = pd.to_numeric(history["Close"], errors="coerce").dropna()
+    close = pd.to_numeric(history["Close"], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
     indicators = calculate_technical_indicators(history)
     latest = indicators.iloc[-1] if not indicators.empty else pd.Series(dtype=float)
-    day_move = float((close.iloc[-1] / close.iloc[-2] - 1) * 100) if len(close) >= 2 else None
-    return_20 = float((close.iloc[-1] / close.iloc[-21] - 1) * 100) if len(close) >= 21 else None
     returns = close.pct_change().dropna()
-    volatility = float(returns.tail(20).std(ddof=1) * np.sqrt(252) * 100) if len(returns) >= 10 else None
-    max_drawdown = float(indicators["Drawdown"].min() * 100) if "Drawdown" in indicators and not indicators.empty else None
-    metric_cols = st.columns(5)
-    metrics = [
-        ("Last close", format_number(close.iloc[-1]), None),
-        ("Daily move", format_percent(day_move), None),
-        ("20-session return", format_percent(return_20), None),
-        ("RSI (14)", format_number(latest.get("RSI_14"), 1), None),
-        ("20-session volatility", f"{format_number(volatility, 1)}%", None),
-    ]
-    for column, (label, value, delta) in zip(metric_cols, metrics):
-        with column:
-            st.metric(label, value, delta=delta)
+    metrics: list[tuple[str, str]] = []
+    currency = str(metadata.get("currency") or "").strip()
+    if not close.empty:
+        metrics.append(("Latest adjusted close", f"{format_number(close.iloc[-1])} {currency}".strip()))
+    if len(close) >= 2:
+        metrics.append(("1-session move", format_percent((close.iloc[-1] / close.iloc[-2] - 1) * 100)))
+    if len(close) >= 21:
+        metrics.append(("20-session return", format_percent((close.iloc[-1] / close.iloc[-21] - 1) * 100)))
+    rsi = latest.get("RSI_14")
+    if pd.notna(rsi):
+        metrics.append(("RSI · 14", format_number(rsi, 1)))
+    if len(returns) >= 20:
+        volatility = returns.tail(20).std(ddof=1) * np.sqrt(252) * 100
+        metrics.append(("20-session volatility", f"{volatility:.1f}% annualised"))
+    if metrics:
+        metric_cols = st.columns(min(5, len(metrics)))
+        for column, (label, value) in zip(metric_cols, metrics):
+            with column:
+                render_metric_card(label, value)
 
+    profile_metrics: list[tuple[str, str]] = []
+    for key, label in (("sector", "Sector"), ("industry", "Industry")):
+        value = metadata.get(key)
+        if value:
+            profile_metrics.append((label, str(value)))
     market_cap = metadata.get("market_cap")
-    cap_label = f"{float(market_cap) / 1e9:.2f}B" if market_cap is not None and pd.notna(market_cap) else "Unavailable"
-    profile_cols = st.columns(4)
-    profile_metrics = [
-        ("Sector", str(metadata.get("sector") or "Unavailable")),
-        ("Industry", str(metadata.get("industry") or "Unavailable")),
-        ("Market cap", cap_label),
-        ("Trailing P/E", format_number(metadata.get("trailing_pe"), 1)),
-    ]
-    for column, (label, value) in zip(profile_cols, profile_metrics):
-        with column:
-            render_metric_card(label, value)
+    if finite_float(market_cap) is not None:
+        profile_metrics.append((f"Market cap · {currency}".strip(" ·"), f"{finite_float(market_cap) / 1e9:,.2f}B"))
+    for key, label in (("trailing_pe", "Trailing P/E"), ("beta", "Beta")):
+        value = metadata.get(key)
+        if finite_float(value) is not None:
+            profile_metrics.append((label, format_number(value, 2)))
+    if profile_metrics:
+        st.markdown('<div class="section-label">Company profile</div>', unsafe_allow_html=True)
+        profile_cols = st.columns(min(5, len(profile_metrics)))
+        for column, (label, value) in zip(profile_cols, profile_metrics):
+            with column:
+                render_metric_card(label, value)
 
-    chart_tab, technical_tab, news_tab = st.tabs(["Price chart", "Technical structure", "Headlines"])
+    chart_tab, technical_tab, news_tab = st.tabs(["Price chart", "Technical indicators", "Headlines"])
     with chart_tab:
         chart_controls = st.columns([1, 2])
         with chart_controls[0]:
-            chart_range = st.selectbox("Price history", ["1M", "3M", "6M", "1Y", "2Y"], index=3, key=f"company_range_{symbol}")
+            chart_range = st.selectbox("History", ["1M", "3M", "6M", "1Y", "2Y"], index=3, key=f"company_range_{symbol}")
         with chart_controls[1]:
-            overlays = st.multiselect("Overlays", ["SMA 20", "SMA 50", "Bollinger Bands"], default=["SMA 20", "SMA 50"], key=f"company_overlays_{symbol}")
+            overlays = st.multiselect("Overlay indicators", ["SMA 20", "SMA 50", "Bollinger Bands"], default=["SMA 20", "SMA 50"], key=f"company_overlays_{symbol}")
         sessions = {"1M": 21, "3M": 63, "6M": 126, "1Y": 252, "2Y": 504}[chart_range]
         st.plotly_chart(market_lens_figure(history, name, sessions, overlays), use_container_width=True, config={"displayModeBar": False, "responsive": True})
-        st.caption(f"Yahoo Finance daily bars · latest bar {latest_bar_date(history) or 'date unavailable'} · maximum observed drawdown in this sample {format_number(max_drawdown, 1)}%. Indicators describe past prices; they do not establish future returns.")
+        drawdown = indicators["Drawdown"].min() * 100 if "Drawdown" in indicators and not indicators.empty else None
+        date_label = latest_bar_date(history)
+        notes = [f"Yahoo Finance adjusted daily bars through {date_label:%d %b %Y}" if date_label else "Yahoo Finance adjusted daily bars"]
+        if drawdown is not None and pd.notna(drawdown):
+            notes.append(f"maximum drawdown in this sample {drawdown:.1f}%")
+        st.caption(" · ".join(notes) + ". Indicators describe observed prices, not future returns.")
         st.button("Open this ticker in Forecast Lab ↗", key=f"company_forecast_{symbol}", on_click=open_forecast_lab, args=(symbol,))
     with technical_tab:
-        st.plotly_chart(forecast_figure(history, {"history": history}), use_container_width=True, config={"displayModeBar": False, "responsive": True})
-        st.caption(f"MACD: {format_number(latest.get('MACD'))} · ATR (14): {format_number(latest.get('ATR_14'))} · RSI (14): {format_number(latest.get('RSI_14'), 1)} · Beta: {format_number(metadata.get('beta'), 2)}.")
+        st.plotly_chart(forecast_figure(history, {"history": history}, "Adjusted daily price"), use_container_width=True, config={"displayModeBar": False, "responsive": True})
+        indicator_values = []
+        for key, label, decimals in (("MACD", "MACD", 3), ("MACD_signal", "MACD signal", 3), ("ATR_14", "ATR · 14", 2), ("RSI_14", "RSI · 14", 1)):
+            value = latest.get(key)
+            if finite_float(value) is not None:
+                indicator_values.append(f"{label}: {format_number(value, decimals)}")
+        if finite_float(metadata.get("beta")) is not None:
+            indicator_values.append(f"Beta: {format_number(metadata['beta'], 2)}")
+        if indicator_values:
+            st.caption(" · ".join(indicator_values))
+        st.caption("RSI uses Wilder's 14-session smoothing; MACD uses 12- and 26-session EMAs with a 9-session signal; ATR uses Wilder's smoothed true range.")
     with news_tab:
         if articles:
             for article in articles[:8]:
                 render_news_card(article)
         else:
-            render_empty("No recent Yahoo Finance search headlines are available for this ticker.")
+            st.caption("No ticker-specific stories were returned by the connected feeds.")
 
 
-def forecast_figure(history: pd.DataFrame, forecast: dict) -> go.Figure:
+def forecast_figure(history: pd.DataFrame, forecast: dict, price_label: str = "Daily price") -> go.Figure:
     window = forecast["history"].tail(150)
     indicators = calculate_technical_indicators(window)
     indicators = indicators.tail(150)
@@ -1024,47 +826,47 @@ def forecast_figure(history: pd.DataFrame, forecast: dict) -> go.Figure:
                 high=indicators["High"],
                 low=indicators["Low"],
                 close=indicators["Close"],
-                name="Adjusted daily price",
-                increasing_line_color="#62e5ec",
-                decreasing_line_color="#ff8e8e",
+                name=price_label,
+                increasing_line_color="#167b78",
+                decreasing_line_color="#b53c4b",
             ),
             row=1,
             col=1,
         )
     else:
-        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["Close"], name="Close", line={"color": "#62e5ec"}), row=1, col=1)
+        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["Close"], name=price_label, line={"color": "#167b78"}), row=1, col=1)
 
-    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["BB_lower"], name="Bollinger lower", line={"color": "rgba(155,140,255,.4)", "width": 1}), row=1, col=1)
+    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["BB_lower"], name="Bollinger lower", line={"color": "rgba(113,85,168,.3)", "width": 1}), row=1, col=1)
     figure.add_trace(
-        go.Scatter(x=indicators.index, y=indicators["BB_upper"], name="Bollinger band", line={"color": "rgba(155,140,255,.4)", "width": 1}, fill="tonexty", fillcolor="rgba(155,140,255,.08)"),
+        go.Scatter(x=indicators.index, y=indicators["BB_upper"], name="Bollinger band", line={"color": "rgba(113,85,168,.3)", "width": 1}, fill="tonexty", fillcolor="rgba(113,85,168,.08)"),
         row=1,
         col=1,
     )
-    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_20"], name="SMA 20", line={"color": "#9b8cff", "width": 1.2}), row=1, col=1)
-    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_50"], name="SMA 50", line={"color": "#ffb36b", "width": 1.2}), row=1, col=1)
+    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_20"], name="SMA 20", line={"color": "#7155a8", "width": 1.2}), row=1, col=1)
+    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_50"], name="SMA 50", line={"color": "#b95413", "width": 1.2}), row=1, col=1)
 
-    hist_colors = ["#62e5ec" if value >= 0 else "#ff8e8e" for value in indicators["MACD_histogram"].fillna(0)]
+    hist_colors = ["#167b78" if value >= 0 else "#b53c4b" for value in indicators["MACD_histogram"].fillna(0)]
     figure.add_trace(go.Bar(x=indicators.index, y=indicators["MACD_histogram"], name="MACD histogram", marker_color=hist_colors), row=2, col=1)
-    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["MACD"], name="MACD", line={"color": "#9b8cff", "width": 1.3}), row=2, col=1)
-    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["MACD_signal"], name="Signal", line={"color": "#ffb36b", "width": 1.2}), row=2, col=1)
-    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["RSI_14"], name="RSI 14", line={"color": "#d38cff", "width": 1.5}), row=3, col=1)
+    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["MACD"], name="MACD", line={"color": "#7155a8", "width": 1.3}), row=2, col=1)
+    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["MACD_signal"], name="Signal", line={"color": "#b95413", "width": 1.2}), row=2, col=1)
+    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["RSI_14"], name="RSI 14", line={"color": "#8465b4", "width": 1.5}), row=3, col=1)
     for y_value in (30, 70):
-        figure.add_hline(y=y_value, line_dash="dot", line_color="rgba(145,162,182,.45)", row=3, col=1)
+        figure.add_hline(y=y_value, line_dash="dot", line_color="rgba(71,85,105,.34)", row=3, col=1)
 
     figure.update_layout(
         height=720,
         margin={"l": 54, "r": 14, "t": 86, "b": 30},
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font={"color": "#91a2b6", "family": "Manrope", "size": 11},
+        font={"color": "#526173", "family": "Manrope", "size": 11},
         xaxis_rangeslider_visible=False,
         legend={"orientation": "h", "y": 1.12, "x": 0, "font": {"size": 9}},
         hovermode="x unified",
     )
     for annotation in figure.layout.annotations:
-        annotation.font = {"size": 12, "color": "#dbe5ef", "family": "Manrope"}
+        annotation.font = {"size": 12, "color": "#344255", "family": "Manrope"}
     figure.update_xaxes(showgrid=False, zeroline=False)
-    figure.update_yaxes(gridcolor="rgba(145,162,182,.12)", zeroline=False)
+    figure.update_yaxes(gridcolor="rgba(71,85,105,.14)", zeroline=False)
     figure.update_yaxes(title_text="Price", row=1, col=1, title_font={"size": 10})
     figure.update_yaxes(title_text="MACD", row=2, col=1, title_font={"size": 10})
     figure.update_yaxes(title_text="RSI", row=3, col=1, title_font={"size": 10})
@@ -1073,12 +875,37 @@ def forecast_figure(history: pd.DataFrame, forecast: dict) -> go.Figure:
 
 
 def render_forecast_lab(access_token: str) -> None:
-    st.markdown('<div class="section-label">Technical analysis & scenario estimates</div>', unsafe_allow_html=True)
+    st.markdown('<div class="eyebrow">Research tools</div>', unsafe_allow_html=True)
+    st.markdown("## Forecast lab")
     st.caption("Indicators describe historical price behaviour. Simulated ranges are scenarios, not guarantees or recommendations.")
 
-    ticker_col, horizon_col, lookback_col, confidence_col, model_col = st.columns([1.1, .85, .9, .9, 1.35])
-    with ticker_col:
-        ticker = st.text_input("Yahoo Finance ticker", value=st.session_state.get("forecast_ticker", "AAPL"), key="forecast_ticker", help="Examples: AAPL, MSFT, NVDA, LLOY.L").strip().upper()
+    ticker_query = st.text_input(
+        "Search company or ticker",
+        value=st.session_state.get("forecast_ticker", "AAPL"),
+        key="forecast_ticker",
+        on_change=clear_forecast_choice,
+        help="Choose a search result below so the forecast uses an exact Yahoo Finance symbol.",
+    ).strip()
+    ticker_matches = search_tickers(ticker_query) if len(ticker_query) >= 2 else []
+    if ticker_matches is None:
+        render_info("Yahoo Finance ticker search did not respond. Refresh market data and try again.")
+        return
+    if not ticker_matches:
+        if len(ticker_query) >= 2:
+            render_info("No matching ticker was returned. Check the company name or exchange suffix.")
+        return
+    ticker_details = {match["symbol"]: match for match in ticker_matches}
+    ticker_options = list(ticker_details)
+    requested_symbol = str(ticker_query).upper()
+    default_index = ticker_options.index(requested_symbol) if requested_symbol in ticker_options else 0
+    ticker = st.selectbox(
+        "Use this exact ticker",
+        ticker_options,
+        index=default_index,
+        format_func=lambda symbol: ticker_option_label(symbol, ticker_details[symbol]),
+        key="forecast_ticker_choice",
+    )
+    horizon_col, lookback_col, confidence_col, model_col = st.columns([.85, .9, .9, 1.35])
     with horizon_col:
         horizon = st.slider("Days ahead", 1, 30, 5)
     with lookback_col:
@@ -1092,32 +919,41 @@ def render_forecast_lab(access_token: str) -> None:
     history = fetch_history(ticker, period="2y", adjusted=True) if ticker else pd.DataFrame()
     forecast = calculate_forecast(history, horizon, lookback, confidence / 100, method, simulations) if not history.empty else None
     if forecast is None:
-        render_empty("Price history is unavailable or too short for this ticker. Check the symbol and try again.")
+        render_info("There is not enough valid daily price history for these settings. Try a shorter lookback or a ticker with a longer price record.")
         return
 
+    metadata = fetch_ticker_metadata(ticker)
+    quote_currency = str(metadata.get("currency") or "").strip()
+    price_suffix = f" {quote_currency}" if quote_currency else ""
     metric_cols = st.columns(5)
     with metric_cols[0]:
-        st.metric("Adjusted close", format_number(forecast["spot"]))
+        st.metric("Adjusted close", f"{format_number(forecast['spot'])}{price_suffix}")
     with metric_cols[1]:
-        st.metric("Median scenario", format_number(forecast["median"]), delta=format_percent(forecast["expected_return"]))
+        st.metric("Median scenario", f"{format_number(forecast['median'])}{price_suffix}", delta=format_percent(forecast["median_return"]))
     with metric_cols[2]:
-        st.metric(f"{confidence}% lower range", format_number(forecast["lower"]))
+        st.metric(f"{confidence}% lower range", f"{format_number(forecast['lower'])}{price_suffix}")
     with metric_cols[3]:
-        st.metric(f"{confidence}% upper range", format_number(forecast["upper"]))
+        st.metric(f"{confidence}% upper range", f"{format_number(forecast['upper'])}{price_suffix}")
     with metric_cols[4]:
         st.metric("Annualised volatility", f"{forecast['annualized_vol']:.1f}%")
+    forecast_bar = latest_bar_date(history)
+    if forecast_bar:
+        st.caption(f"{ticker} · adjusted daily bars through {forecast_bar:%d %b %Y} · future dates are weekdays and do not account for exchange holidays.")
 
     st.markdown("#### Price structure and indicators")
-    st.plotly_chart(forecast_figure(history, forecast), use_container_width=True, config={"displayModeBar": False, "responsive": True})
+    st.plotly_chart(forecast_figure(history, forecast, "Adjusted daily price"), use_container_width=True, config={"displayModeBar": False, "responsive": True})
     indicators = calculate_technical_indicators(history)
     latest = indicators.iloc[-1]
-    st.caption(
-        f"SMA = simple moving average; Bollinger Bands = 20-session mean ± 2 standard deviations; "
-        f"RSI (14) = exponentially smoothed relative strength index; MACD = EMA(12) − EMA(26), with a 9-session signal line; "
-        f"ATR (14) = smoothed true range. Latest RSI {format_number(latest.get('RSI_14'), 1)}, "
-        f"MACD {format_number(latest.get('MACD'))}, ATR {format_number(latest.get('ATR_14'))}; "
-        f"maximum historical drawdown in this sample {forecast['max_drawdown']:.1f}%."
-    )
+    indicator_details = []
+    for key, label, decimals in (("RSI_14", "RSI · 14", 1), ("MACD", "MACD", 3), ("ATR_14", "ATR · 14", 2)):
+        value = latest.get(key)
+        if value is not None and pd.notna(value):
+            indicator_details.append(f"{label} {format_number(value, decimals)}")
+    formula_note = "SMA is the mean of the latest 20/50 closes; Bollinger Bands are the 20-session mean ±2 standard deviations. RSI and ATR use Wilder smoothing; MACD uses EMA(12) − EMA(26) and a 9-session signal."
+    if indicator_details:
+        formula_note += " Latest: " + " · ".join(indicator_details) + "."
+    formula_note += f" Maximum historical drawdown in this sample: {forecast['max_drawdown']:.1f}%."
+    st.caption(formula_note)
 
     st.markdown("#### Monte Carlo price range")
     displayed_history = forecast["history"].tail(120)
@@ -1127,11 +963,11 @@ def render_forecast_lab(access_token: str) -> None:
     median_path = [forecast["spot"], *forecast["median_path"]]
     high_path = [forecast["spot"], *forecast["upper_path"]]
     figure = go.Figure()
-    figure.add_trace(go.Scatter(x=displayed_history.index, y=displayed_history["Close"], mode="lines", name="Adjusted close", line={"color": "#9b8cff", "width": 2}))
+    figure.add_trace(go.Scatter(x=displayed_history.index, y=displayed_history["Close"], mode="lines", name="Adjusted close", line={"color": "#7155a8", "width": 2}))
     figure.add_trace(go.Scatter(x=forecast_dates, y=low_path, mode="lines", line={"width": 0}, showlegend=False, hoverinfo="skip"))
-    figure.add_trace(go.Scatter(x=forecast_dates, y=high_path, mode="lines", line={"width": 0}, fill="tonexty", fillcolor="rgba(98,229,236,.14)", name=f"{confidence}% simulation range", hoverinfo="skip"))
-    figure.add_trace(go.Scatter(x=forecast_dates, y=median_path, mode="lines+markers", name="Median path", line={"color": "#62e5ec", "width": 2, "dash": "dash"}, marker={"size": 5}))
-    figure.update_layout(height=400, margin={"l": 12, "r": 12, "t": 76, "b": 22}, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font={"color": "#91a2b6", "family": "Manrope", "size": 11}, title={"text": "Simulated price paths · historical close and range", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#eaf0f6"}}, xaxis={"showgrid": False}, yaxis={"gridcolor": "rgba(145,162,182,.12)", "zeroline": False}, legend={"orientation": "h", "y": 1.04, "x": 0, "font": {"size": 9}}, hovermode="x unified")
+    figure.add_trace(go.Scatter(x=forecast_dates, y=high_path, mode="lines", line={"width": 0}, fill="tonexty", fillcolor="rgba(22,123,120,.12)", name=f"{confidence}% simulation range", hoverinfo="skip"))
+    figure.add_trace(go.Scatter(x=forecast_dates, y=median_path, mode="lines+markers", name="Median path", line={"color": "#167b78", "width": 2, "dash": "dash"}, marker={"size": 5}))
+    figure.update_layout(height=400, margin={"l": 12, "r": 12, "t": 76, "b": 22}, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font={"color": "#526173", "family": "Manrope", "size": 11}, title={"text": "Simulated price paths · historical close and range", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#182230"}}, xaxis={"showgrid": False}, yaxis={"gridcolor": "rgba(71,85,105,.14)", "zeroline": False}, legend={"orientation": "h", "y": 1.04, "x": 0, "font": {"size": 9}}, hovermode="x unified")
     st.plotly_chart(figure, use_container_width=True, config={"displayModeBar": False, "responsive": True})
     if method == "Historical bootstrap":
         formula = f"The model resamples the last {lookback} daily log returns with replacement and compounds {simulations:,} paths. The shaded range uses the central {confidence}% of simulated terminal prices; it assumes sampled returns remain relevant and independent."
@@ -1150,10 +986,10 @@ def render_forecast_lab(access_token: str) -> None:
         with score_cols[1]:
             st.metric("Directional accuracy", f"{score['directional_accuracy_pct']:.1f}%")
         with score_cols[2]:
-            st.metric("Model mean abs. error", f"{score['model_mae_pct']:.2f}%")
+            st.metric("Historical drift MAPE", f"{score['model_mae_pct']:.2f}%")
         with score_cols[3]:
             st.metric("No-change baseline error", f"{score['baseline_mae_pct']:.2f}%", delta=f"{score['mae_improvement_pct']:+.1f}% vs baseline")
-        st.caption("Rolling historical check: each estimate uses only earlier data and is compared with a no-change price baseline. It evaluates the point-return model, not the simulated range, and is not evidence of future performance.")
+        st.caption("Rolling check of a mean-log-return point estimate against a no-change baseline. This score is separate from the selected simulation range and does not predict future accuracy.")
 
     st.markdown("#### Track this forecast")
     st.caption("Record the current scenario to your private account. When Yahoo later has a daily bar on or after its target date, the app adds the actual result to this scorecard.")
@@ -1165,20 +1001,33 @@ def render_forecast_lab(access_token: str) -> None:
             render_info("This ticker, date, horizon, and model combination is already being tracked.")
 
     tracked = update_forecast_outcomes(ticker, history, access_token)
-    resolved = [item for item in tracked if item.get("actual") is not None]
+    resolved: list[tuple[dict, list[float]]] = []
+    for item in tracked:
+        values = [finite_float(item.get(key)) for key in ("actual", "median", "spot", "lower", "upper")]
+        if all(value is not None for value in values):
+            actual_value, median_value, spot_value, lower_value, upper_value = values
+            if actual_value > 0 and median_value > 0 and spot_value > 0 and lower_value > 0 and lower_value <= upper_value:
+                resolved.append((item, values))
     if resolved:
-        median_errors = [abs(float(item["actual"]) / float(item["median"]) - 1) * 100 for item in resolved if item.get("median")]
-        baseline_errors = [abs(float(item["actual"]) / float(item["spot"]) - 1) * 100 for item in resolved if item.get("spot")]
-        range_hits = [float(item["lower"]) <= float(item["actual"]) <= float(item["upper"]) for item in resolved]
-        tracked_cols = st.columns(4)
-        with tracked_cols[0]:
-            st.metric("Resolved forecasts", f"{len(resolved):,}")
-        with tracked_cols[1]:
-            st.metric("Median absolute error", f"{pd.Series(median_errors).median():.2f}%" if median_errors else "—")
-        with tracked_cols[2]:
-            st.metric("No-change baseline error", f"{pd.Series(baseline_errors).median():.2f}%" if baseline_errors else "—")
-        with tracked_cols[3]:
-            st.metric("Observed range coverage", f"{sum(range_hits) / len(range_hits) * 100:.1f}%")
+        median_errors: list[float] = []
+        baseline_errors: list[float] = []
+        range_hits: list[bool] = []
+        for _, values in resolved:
+            actual_value, median_value, spot_value, lower_value, upper_value = values
+            median_errors.append(abs(actual_value / median_value - 1) * 100)
+            baseline_errors.append(abs(actual_value / spot_value - 1) * 100)
+            range_hits.append(lower_value <= actual_value <= upper_value)
+        tracked_values: list[tuple[str, str]] = [("Resolved forecasts", f"{len(resolved):,}")]
+        if median_errors:
+            tracked_values.append(("Median absolute percentage error", f"{pd.Series(median_errors).median():.2f}%"))
+        if baseline_errors:
+            tracked_values.append(("No-change baseline error", f"{pd.Series(baseline_errors).median():.2f}%"))
+        if range_hits:
+            tracked_values.append(("Observed range coverage", f"{sum(range_hits) / len(range_hits) * 100:.1f}%"))
+        tracked_cols = st.columns(min(4, len(tracked_values)))
+        for column, (label, value) in zip(tracked_cols, tracked_values):
+            with column:
+                st.metric(label, value)
         tracked_table = pd.DataFrame(
             [
                 {
@@ -1188,14 +1037,14 @@ def render_forecast_lab(access_token: str) -> None:
                     "Model": item["method"],
                     "Median": format_number(item["median"]),
                     "Actual": format_number(item["actual"]),
-                    "Absolute error": format_percent(abs(float(item["actual"]) / float(item["median"]) - 1) * 100),
+                    "Absolute % error": format_percent(abs(float(item["actual"]) / float(item["median"]) - 1) * 100),
                     "Within range": "Yes" if float(item["lower"]) <= float(item["actual"]) <= float(item["upper"]) else "No",
                 }
-                for item in sorted(resolved, key=lambda record: record.get("created_at", ""), reverse=True)[:20]
+                for item, _ in sorted(resolved, key=lambda entry: entry[0].get("created_at", ""), reverse=True)[:20]
             ]
         )
         st.dataframe(tracked_table, hide_index=True, use_container_width=True)
-        st.caption("Observed range coverage is descriptive. Small tracked samples cannot establish that future ranges are calibrated.")
+        st.caption("Percentage errors compare each actual close with the saved median. Observed range coverage is descriptive; small tracked samples cannot establish that future ranges are calibrated.")
     else:
         st.caption("No saved forecasts for this ticker have reached their target date yet.")
 
@@ -1281,9 +1130,9 @@ def portfolio_value_figure(series: pd.Series, base_currency: str, visible_sessio
             y=window.values,
             mode="lines",
             name="Open holdings",
-            line={"color": "#62e5ec", "width": 2.5},
+            line={"color": "#167b78", "width": 2.5},
             fill="tozeroy",
-            fillcolor="rgba(98,229,236,.08)",
+            fillcolor="rgba(22,123,120,.09)",
             hovertemplate=f"%{{x|%d %b %Y}}<br>{base_currency} %{{y:,.2f}}<extra></extra>",
         )
     )
@@ -1292,10 +1141,10 @@ def portfolio_value_figure(series: pd.Series, base_currency: str, visible_sessio
         margin={"l": 12, "r": 14, "t": 66, "b": 24},
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font={"color": "#91a2b6", "family": "Manrope", "size": 11},
+        font={"color": "#526173", "family": "Manrope", "size": 11},
         xaxis={"showgrid": False},
-        yaxis={"gridcolor": "rgba(145,162,182,.12)", "zeroline": False, "tickprefix": f"{base_currency} "},
-        title={"text": f"Historical holdings value · {base_currency}", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#eaf0f6"}},
+        yaxis={"gridcolor": "rgba(71,85,105,.14)", "zeroline": False, "tickprefix": f"{base_currency} "},
+        title={"text": f"Historical holdings value · {base_currency}", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#182230"}},
         hovermode="x unified",
         showlegend=False,
     )
@@ -1309,10 +1158,10 @@ def portfolio_relative_figure(stock_history: pd.DataFrame, benchmark_history: pd
     figure = go.Figure()
     if len(combined) >= 2:
         indexed = (combined / combined.iloc[0] - 1) * 100
-        figure.add_trace(go.Scatter(x=indexed.index, y=indexed["Holding"], mode="lines", name="Holding", line={"color": "#62e5ec", "width": 2.4}))
-        figure.add_trace(go.Scatter(x=indexed.index, y=indexed[benchmark_name], mode="lines", name=benchmark_name, line={"color": "#9b8cff", "width": 1.8}))
-    figure.add_hline(y=0, line_color="rgba(145,162,182,.38)", line_dash="dot")
-    figure.update_layout(height=380, margin={"l": 12, "r": 12, "t": 76, "b": 24}, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font={"color": "#91a2b6", "family": "Manrope", "size": 11}, xaxis={"showgrid": False}, yaxis={"gridcolor": "rgba(145,162,182,.12)", "ticksuffix": "%"}, title={"text": f"Holding vs {benchmark_name} · rebased return", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#eaf0f6"}}, legend={"orientation": "h", "y": 1.04, "x": 0, "font": {"size": 9}}, hovermode="x unified")
+        figure.add_trace(go.Scatter(x=indexed.index, y=indexed["Holding"], mode="lines", name="Holding", line={"color": "#167b78", "width": 2.4}))
+        figure.add_trace(go.Scatter(x=indexed.index, y=indexed[benchmark_name], mode="lines", name=benchmark_name, line={"color": "#7155a8", "width": 1.8}))
+    figure.add_hline(y=0, line_color="rgba(71,85,105,.34)", line_dash="dot")
+    figure.update_layout(height=380, margin={"l": 12, "r": 12, "t": 76, "b": 24}, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font={"color": "#526173", "family": "Manrope", "size": 11}, xaxis={"showgrid": False}, yaxis={"gridcolor": "rgba(71,85,105,.14)", "ticksuffix": "%"}, title={"text": f"Holding vs {benchmark_name} · rebased return", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#182230"}}, legend={"orientation": "h", "y": 1.04, "x": 0, "font": {"size": 9}}, hovermode="x unified")
     return figure
 
 
@@ -1323,11 +1172,11 @@ def portfolio_scenario_figure(history: pd.DataFrame, forecast: dict, confidence:
     median = [forecast["spot"], *forecast["median_path"]]
     high = [forecast["spot"], *forecast["upper_path"]]
     figure = go.Figure()
-    figure.add_trace(go.Scatter(x=close.index, y=close.values, name="Recent daily close", line={"color": "#9b8cff", "width": 2}))
+    figure.add_trace(go.Scatter(x=close.index, y=close.values, name="Recent daily close", line={"color": "#7155a8", "width": 2}))
     figure.add_trace(go.Scatter(x=dates, y=low, line={"width": 0}, showlegend=False, hoverinfo="skip"))
-    figure.add_trace(go.Scatter(x=dates, y=high, line={"width": 0}, fill="tonexty", fillcolor="rgba(98,229,236,.14)", name=f"{confidence}% scenario range", hoverinfo="skip"))
-    figure.add_trace(go.Scatter(x=dates, y=median, mode="lines+markers", name="Median scenario", line={"color": "#62e5ec", "width": 2, "dash": "dash"}, marker={"size": 5}))
-    figure.update_layout(height=390, margin={"l": 12, "r": 12, "t": 76, "b": 24}, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font={"color": "#91a2b6", "family": "Manrope", "size": 11}, xaxis={"showgrid": False}, yaxis={"gridcolor": "rgba(145,162,182,.12)", "zeroline": False}, title={"text": f"Recent price and {confidence}% scenario range", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#eaf0f6"}}, legend={"orientation": "h", "y": 1.04, "x": 0, "font": {"size": 9}}, hovermode="x unified")
+    figure.add_trace(go.Scatter(x=dates, y=high, line={"width": 0}, fill="tonexty", fillcolor="rgba(22,123,120,.12)", name=f"{confidence}% scenario range", hoverinfo="skip"))
+    figure.add_trace(go.Scatter(x=dates, y=median, mode="lines+markers", name="Median scenario", line={"color": "#167b78", "width": 2, "dash": "dash"}, marker={"size": 5}))
+    figure.update_layout(height=390, margin={"l": 12, "r": 12, "t": 76, "b": 24}, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font={"color": "#526173", "family": "Manrope", "size": 11}, xaxis={"showgrid": False}, yaxis={"gridcolor": "rgba(71,85,105,.14)", "zeroline": False}, title={"text": f"Recent price and {confidence}% scenario range", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#182230"}}, legend={"orientation": "h", "y": 1.04, "x": 0, "font": {"size": 9}}, hovermode="x unified")
     return figure
 
 
@@ -1419,7 +1268,7 @@ def render_powerbi_export(
                 selected_search_ticker = st.selectbox(
                     "Choose a Yahoo result",
                     options=list(search_details),
-                    format_func=lambda symbol: f"{symbol} · {search_details[symbol]['name']} · {search_details[symbol]['exchange']}",
+                    format_func=lambda symbol: ticker_option_label(symbol, search_details[symbol]),
                     key="powerbi_search_choice",
                 )
             with search_cols[1]:
@@ -1529,7 +1378,7 @@ def render_powerbi_export(
 
 def render_portfolio(region_name: str, access_token: str) -> None:
     st.markdown('<div class="eyebrow">Your investments</div>', unsafe_allow_html=True)
-    st.markdown('<h2 style="margin:0 0 .3rem">Portfolio command centre</h2>', unsafe_allow_html=True)
+    st.markdown("## Portfolio")
     st.caption("Track every buy and sell, see what is driving your exposure, and inspect each holding. Your transaction history is private to your signed-in account. Prices are the latest Yahoo Finance daily bars; values are indicative.")
 
     settings = st.columns([1, 3])
@@ -1564,10 +1413,7 @@ def render_portfolio(region_name: str, access_token: str) -> None:
             ticker = st.selectbox(
                 "Choose a matching ticker",
                 options=list(ticker_details),
-                format_func=lambda symbol: (
-                    f"{symbol} · {ticker_details[symbol]['name']} · "
-                    f"{ticker_details[symbol]['exchange']}"
-                ),
+                format_func=lambda symbol: ticker_option_label(symbol, ticker_details[symbol]),
                 key="portfolio_ticker_choice",
             )
         with st.form("portfolio_trade_form"):
@@ -1630,9 +1476,9 @@ def render_portfolio(region_name: str, access_token: str) -> None:
             position = {
                 **item,
                 "name": metadata.get("name") or symbol,
-                "sector": metadata.get("sector") or "Unavailable",
-                "industry": metadata.get("industry") or "Unavailable",
-                "currency": "GBp" if pence_quote else raw_currency,
+                "sector": metadata.get("sector") or "",
+                "industry": metadata.get("industry") or "",
+                "currency": "GBp" if pence_quote else (raw_currency if raw_currency != "?" else ""),
                 "major_currency": major_currency,
                 "price_scale": scale,
                 "fx_rate": fx_rate,
@@ -1664,8 +1510,7 @@ def render_portfolio(region_name: str, access_token: str) -> None:
                             "rsi": latest.get("RSI_14"),
                             "macd": latest.get("MACD"),
                             "atr": latest.get("ATR_14"),
-                            "volume_ratio": get_volume_multiple(history),
-                            "volatility_20": float(close.pct_change().dropna().tail(20).std(ddof=1) * (252 ** 0.5) * 100) if len(close) > 10 else None,
+                            "volatility_20": float(close.pct_change().dropna().tail(20).std(ddof=1) * (252 ** 0.5) * 100) if len(close) >= 21 else None,
                             "max_drawdown": float(indicators["Drawdown"].min() * 100) if "Drawdown" in indicators and not indicators.empty else None,
                             "as_of": latest_bar_date(history),
                         }
@@ -1688,25 +1533,26 @@ def render_portfolio(region_name: str, access_token: str) -> None:
     combined_gain = realized_total + unrealized_total if realized_total is not None and unrealized_total is not None else None
     day_total = sum(float(position["shares"]) * (float(position["price"]) - float(position["previous"])) * float(position["price_scale"]) * float(position["fx_rate"]) for position in priced_positions if position.get("previous") is not None and position.get("fx_rate") is not None) if len(priced_positions) == len(active_positions) and all(position.get("previous") is not None and position.get("fx_rate") is not None for position in active_positions) else None
 
-    metrics = st.columns(5)
     metric_values = [
-        (f"Market value · {base_currency}", format_number(market_total), None),
-        (f"Open cost basis · {base_currency}", format_number(basis_total), None),
-        (f"Unrealised P&L · {base_currency}", format_number(unrealized_total), format_percent(unrealized_total / basis_total * 100) if unrealized_total is not None and basis_total else None),
-        (f"Realised P&L · {base_currency}", format_number(realized_total), None),
-        (f"Total P&L · {base_currency}", format_number(combined_gain), format_percent(combined_gain / basis_total * 100) if combined_gain is not None and basis_total else None),
+        (f"Market value · {base_currency}", market_total, None),
+        (f"Open cost basis · {base_currency}", basis_total, None),
+        (f"Unrealised P&L · {base_currency}", unrealized_total, format_percent(unrealized_total / basis_total * 100) if unrealized_total is not None and basis_total else None),
+        (f"Realised P&L · {base_currency}", realized_total, None),
+        (f"Total P&L · {base_currency}", combined_gain, format_percent(combined_gain / basis_total * 100) if combined_gain is not None and basis_total else None),
     ]
-    for column, (label, value, delta) in zip(metrics, metric_values):
+    visible_metrics = [(label, value, delta) for label, value, delta in metric_values if value is not None]
+    metric_columns = st.columns(min(5, len(visible_metrics))) if visible_metrics else []
+    for column, (label, value, delta) in zip(metric_columns, visible_metrics):
         with column:
-            st.metric(label, value, delta=delta)
+            st.metric(label, format_number(value), delta=delta)
     if day_total is not None:
-        st.caption(f"Daily change across open positions: {format_number(day_total)} {base_currency} · based on latest daily close versus previous close.")
+        st.caption(f"Daily change across open positions: {format_number(day_total)} {base_currency} · based on the latest Yahoo Finance daily bar versus the previous bar.")
     if not all_market_values:
-        render_info("Some holding prices or FX rates are unavailable, so portfolio-wide base-currency totals and charts are incomplete.")
+        render_info("Some open holdings have no current price or FX quote, so full portfolio totals are omitted until every position can be valued.")
     if not all_open_costs_known:
         st.caption("An opening balance has no recorded purchase cost. Add or edit its cost in the transaction ledger before relying on portfolio P&L.")
     if realized_total is None and realized_rows:
-        st.caption("Realised P&L is unavailable for one or more sales because the original lot cost or FX rate is missing.")
+        st.caption("Realised P&L needs the original lot costs and a current FX quote for every affected sale.")
 
     render_powerbi_export(transactions, active_positions, access_token, region_name, base_currency)
 
@@ -1723,34 +1569,34 @@ def render_portfolio(region_name: str, access_token: str) -> None:
         else:
             render_empty("Historical holdings value will appear when price history is available for every open position.")
     with view_tabs[1]:
-        allocations = [position for position in active_positions if position.get("market_value_base") is not None and position["market_value_base"] > 0]
+        allocations = [position for position in active_positions if position.get("market_value_base") is not None and position["market_value_base"] > 0] if all_market_values else []
         allocation_col, sector_col = st.columns(2, gap="large")
         with allocation_col:
             if allocations:
-                figure = go.Figure(go.Pie(labels=[f"{item['ticker']} · {item['name']}" for item in allocations], values=[item["market_value_base"] for item in allocations], hole=.66, marker={"colors": ["#62e5ec", "#9b8cff", "#ffb36b", "#d38cff", "#ff8e8e", "#6dd9da", "#ff8e9b", "#ffc68e"]}))
+                figure = go.Figure(go.Pie(labels=[f"{item['ticker']} · {item['name']}" for item in allocations], values=[item["market_value_base"] for item in allocations], hole=.66, marker={"colors": ["#167b78", "#7155a8", "#b95413", "#8465b4", "#b53c4b", "#2a898a", "#b53c4b", "#da853d"]}))
                 figure.update_layout(
                     height=410,
                     margin={"l": 8, "r": 8, "t": 62, "b": 76},
                     paper_bgcolor="rgba(0,0,0,0)",
-                    font={"color": "#91a2b6", "family": "Manrope", "size": 10},
+                    font={"color": "#526173", "family": "Manrope", "size": 10},
                     legend={"orientation": "h", "y": -0.14, "x": 0.5, "xanchor": "center", "font": {"size": 9}},
-                    title={"text": f"Holdings mix · {base_currency}", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#eaf0f6"}},
+                    title={"text": f"Holdings mix · {base_currency}", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#182230"}},
                 )
                 st.plotly_chart(figure, use_container_width=True, config={"displayModeBar": False, "responsive": True})
             else:
-                render_empty("Allocation needs current prices and FX rates for your holdings.")
+                render_info("Allocation appears when every open holding has a current price and FX rate; partial totals are not presented as the full portfolio.")
         with sector_col:
             sector_values: dict[str, float] = {}
             for position in allocations:
-                sector = str(position.get("sector") or "Unavailable")
+                sector = str(position.get("sector") or "Unclassified")
                 sector_values[sector] = sector_values.get(sector, 0.0) + float(position["market_value_base"])
             if sector_values:
                 sector_frame = pd.Series(sector_values).sort_values()
-                figure = go.Figure(go.Bar(x=sector_frame.values, y=sector_frame.index, orientation="h", marker={"color": "#9b8cff"}, text=[f"{value / market_total * 100:.1f}%" if market_total else "" for value in sector_frame.values], textposition="outside", hovertemplate="%{y}<br>Value: %{x:,.2f}<extra></extra>"))
-                figure.update_layout(height=410, margin={"l": 8, "r": 38, "t": 62, "b": 20}, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font={"color": "#91a2b6", "family": "Manrope", "size": 10}, xaxis={"showgrid": False, "visible": False}, yaxis={"showgrid": False}, showlegend=False, title={"text": "Sector exposure · share of portfolio", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#eaf0f6"}})
+                figure = go.Figure(go.Bar(x=sector_frame.values, y=sector_frame.index, orientation="h", marker={"color": "#7155a8"}, text=[f"{value / market_total * 100:.1f}%" if market_total else "" for value in sector_frame.values], textposition="outside", hovertemplate="%{y}<br>Value: %{x:,.2f}<extra></extra>"))
+                figure.update_layout(height=410, margin={"l": 8, "r": 38, "t": 62, "b": 20}, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font={"color": "#526173", "family": "Manrope", "size": 10}, xaxis={"showgrid": False, "visible": False}, yaxis={"showgrid": False}, showlegend=False, title={"text": "Sector exposure · share of portfolio", "x": 0.02, "xanchor": "left", "font": {"size": 14, "color": "#182230"}})
                 st.plotly_chart(figure, use_container_width=True, config={"displayModeBar": False, "responsive": True})
             else:
-                render_empty("Sector exposure is not available from the current company profiles.")
+                render_info("Sector exposure appears when Yahoo Finance supplies company profiles and current holding prices.")
     with view_tabs[2]:
         total_for_weight = market_total or 0.0
         table_rows = []
@@ -1764,13 +1610,13 @@ def render_portfolio(region_name: str, access_token: str) -> None:
                     "Shares": position["shares"],
                     "Average cost / share": position["average_cost"] if position.get("cost_known", True) else None,
                     "Last close": position.get("price"),
-                    "Quote currency": position["currency"],
+                    "Quote currency": position["currency"] or None,
                     f"Value · {base_currency}": position.get("market_value_base"),
                     "Weight %": weight,
                     "Day move %": position.get("day_move_pct"),
                     f"Open P&L · {base_currency}": position.get("unrealized_base"),
                     "RSI 14": position.get("rsi"),
-                    "Price date": str(position.get("as_of") or "—"),
+                    "Price date": position.get("as_of"),
                 }
             )
         st.dataframe(pd.DataFrame(table_rows), hide_index=True, use_container_width=True, column_config={"Shares": st.column_config.NumberColumn(format="%.4f"), "Average cost / share": st.column_config.NumberColumn(format="%.4f"), "Last close": st.column_config.NumberColumn(format="%.4f"), "Weight %": st.column_config.NumberColumn(format="%.1f%%"), "Day move %": st.column_config.NumberColumn(format="%.2f%%"), "RSI 14": st.column_config.NumberColumn(format="%.1f")})
@@ -1783,48 +1629,63 @@ def render_portfolio(region_name: str, access_token: str) -> None:
     detail_history = fetch_history(selected_ticker, period="2y", adjusted=True)
     detail_meta = metadata_by_ticker.get(selected_ticker, {})
     xirr = calculate_xirr(transactions, selected_ticker, float(selected.get("price") or 0.0), float(selected["shares"]), selected.get("as_of") or london_now().date()) if selected.get("price") is not None else None
-    details = st.columns(6)
-    with details[0]:
-        st.metric("Last close", f"{format_number(selected.get('price'))} {selected['currency']}")
-    with details[1]:
-        st.metric("Shares held", format_number(selected["shares"], 4))
-    with details[2]:
-        st.metric("Position value", f"{format_number(selected.get('market_value_base'))} {base_currency}")
-    with details[3]:
-        st.metric("Open P&L", f"{format_number(selected.get('unrealized_base'))} {base_currency}", delta=format_percent(selected.get("return_pct")) if selected.get("return_pct") is not None else None)
-    with details[4]:
-        st.metric("Realised P&L", f"{format_number(selected.get('realized_base'))} {base_currency}")
-    with details[5]:
-        st.metric("Money-weighted XIRR", format_percent(xirr * 100) if xirr is not None else "—")
-    st.caption("XIRR annualises dated buys and sells plus today’s open position value. It is unavailable when a purchase date or cost is unknown, and it excludes dividends.")
+    holding_metrics: list[tuple[str, str, str | None]] = [("Shares held", format_number(selected["shares"], 4), None)]
+    if selected.get("price") is not None:
+        selected_currency = str(selected.get("currency") or "").strip()
+        holding_metrics.append(("Latest close", f"{format_number(selected['price'])} {selected_currency}".strip(), None))
+    if selected.get("market_value_base") is not None:
+        holding_metrics.append(("Position value", f"{format_number(selected['market_value_base'])} {base_currency}", None))
+    if selected.get("unrealized_base") is not None:
+        holding_metrics.append(("Open P&L", f"{format_number(selected['unrealized_base'])} {base_currency}", format_percent(selected.get("return_pct")) if selected.get("return_pct") is not None else None))
+    if selected.get("realized_base") is not None:
+        holding_metrics.append(("Realised P&L", f"{format_number(selected['realized_base'])} {base_currency}", None))
+    if xirr is not None:
+        holding_metrics.append(("Money-weighted XIRR", format_percent(xirr * 100), None))
+    detail_columns = st.columns(min(6, len(holding_metrics)))
+    for column, (label, value, delta) in zip(detail_columns, holding_metrics):
+        with column:
+            st.metric(label, value, delta=delta)
+    if xirr is not None:
+        st.caption("XIRR annualises dated buys and sells plus today’s open position value. It excludes dividends.")
+    else:
+        st.caption("XIRR appears when the recorded purchases have dates and known costs; dividends are not included.")
 
     detail_tabs = st.tabs(["Price & indicators", "Relative performance", "Scenario estimate", "Recent news"])
     with detail_tabs[0]:
-        fundamental_cols = st.columns(5)
+        fundamental_metrics: list[tuple[str, str]] = []
+        for key, label in (("sector", "Sector"), ("industry", "Industry")):
+            if selected.get(key):
+                fundamental_metrics.append((label, str(selected[key])))
         market_cap = detail_meta.get("market_cap")
-        market_cap_text = f"{float(market_cap) / 1e9:.2f}B" if market_cap is not None and pd.notna(market_cap) else "—"
-        metrics = [
-            ("Sector", selected["sector"]),
-            ("Industry", selected["industry"]),
-            ("Market cap", market_cap_text),
-            ("Trailing P/E", format_number(detail_meta.get("trailing_pe"), 1)),
-            ("Beta", format_number(detail_meta.get("beta"), 2)),
-        ]
-        for column, (label, value) in zip(fundamental_cols, metrics):
-            with column:
-                render_metric_card(label, value)
+        if market_cap is not None and pd.notna(market_cap):
+            fundamental_metrics.append((f"Market cap · {detail_meta.get('currency') or selected['currency']}", f"{float(market_cap) / 1e9:,.2f}B"))
+        for key, label, decimals in (("trailing_pe", "Trailing P/E", 2), ("beta", "Beta", 2)):
+            value = detail_meta.get(key)
+            if value is not None and pd.notna(value):
+                fundamental_metrics.append((label, format_number(value, decimals)))
+        if fundamental_metrics:
+            fundamental_cols = st.columns(min(5, len(fundamental_metrics)))
+            for column, (label, value) in zip(fundamental_cols, fundamental_metrics):
+                with column:
+                    render_metric_card(label, value)
         if not detail_history.empty:
-            st.plotly_chart(forecast_figure(detail_history, {"history": detail_history}), use_container_width=True, config={"displayModeBar": False, "responsive": True})
-            st.caption(f"RSI 14: {format_number(selected.get('rsi'), 1)} · MACD: {format_number(selected.get('macd'))} · ATR 14: {format_number(selected.get('atr'))} {selected['currency']} · 20-session annualised volatility: {format_number(selected.get('volatility_20'), 1)}% · maximum drawdown in available sample: {format_number(selected.get('max_drawdown'), 1)}%.")
+            st.plotly_chart(forecast_figure(detail_history, {"history": detail_history}, "Adjusted daily price"), use_container_width=True, config={"displayModeBar": False, "responsive": True})
+            technical_values = []
+            for key, label, decimals, suffix in (("rsi", "RSI · 14", 1, ""), ("macd", "MACD", 3, ""), ("atr", "ATR · 14", 2, f" {selected['currency']}"), ("volatility_20", "20-session volatility", 1, "% annualised"), ("max_drawdown", "Maximum sample drawdown", 1, "%")):
+                value = selected.get(key)
+                if value is not None and pd.notna(value):
+                    technical_values.append(f"{label}: {format_number(value, decimals)}{suffix}")
+            if technical_values:
+                st.caption(" · ".join(technical_values))
         else:
-            render_empty("Price history for this holding is temporarily unavailable.")
+            render_info("Yahoo Finance returned no daily bars for this holding; its chart and indicators are omitted.")
     with detail_tabs[1]:
         benchmark_history = fetch_history(main_benchmark_symbol, period="2y", adjusted=True)
         if not detail_history.empty and not benchmark_history.empty:
             st.plotly_chart(portfolio_relative_figure(detail_history, benchmark_history, main_benchmark_name), use_container_width=True, config={"displayModeBar": False, "responsive": True})
             st.caption(f"Both series are rebased to 0% at the first shared daily bar. This compares price performance with {main_benchmark_name}; it does not include a cash-flow adjustment for your trades.")
         else:
-            render_empty("The holding or benchmark history is temporarily unavailable.")
+            render_info("Yahoo Finance returned no shared daily bars for this comparison.")
     with detail_tabs[2]:
         control_cols = st.columns([.8, 1, 1, .9])
         with control_cols[0]:
@@ -1843,7 +1704,7 @@ def render_portfolio(region_name: str, access_token: str) -> None:
             scenario_factor = float(selected["shares"]) * float(selected["price_scale"]) * float(selected["fx_rate"] or 0.0)
             scenario_cols = st.columns(4)
             scenario_values = [
-                (f"Median · {horizon}d", forecast["median"] * price_scale, forecast["expected_return"]),
+                (f"Median · {horizon}d", forecast["median"] * price_scale, forecast["median_return"]),
                 (f"{confidence}% lower", forecast["lower"] * price_scale, None),
                 (f"{confidence}% upper", forecast["upper"] * price_scale, None),
                 ("Annualised volatility", forecast["annualized_vol"], None),
@@ -1866,7 +1727,7 @@ def render_portfolio(region_name: str, access_token: str) -> None:
                 with score_cols[0]:
                     st.metric("Historical test windows", f"{score['samples']:,}")
                 with score_cols[1]:
-                    st.metric("Model mean abs. error", f"{score['model_mae_pct']:.2f}%")
+                    st.metric("Historical drift MAPE", f"{score['model_mae_pct']:.2f}%")
                 with score_cols[2]:
                     st.metric("No-change baseline error", f"{score['baseline_mae_pct']:.2f}%")
                 st.caption(f"Historical direction accuracy: {score['directional_accuracy_pct']:.1f}% across prior rolling test windows. The scorecard evaluates historical point estimates; it does not validate future simulated ranges.")
@@ -1892,7 +1753,7 @@ def save_report_for_region(now: datetime, region_name: str, benchmarks: list[dic
         symbol: fetch_ticker_news(symbol, count=8)
         for symbol in pd.concat([gainers.head(5), losers.head(5)], ignore_index=True).get("symbol", pd.Series(dtype=str)).dropna().astype(str).unique()
     }
-    status, status_detail = market_session_status(region_name, now)
+    _, status_detail = market_session_status(region_name, now)
     report = build_daily_brief(
         now,
         benchmarks,
@@ -1900,22 +1761,98 @@ def save_report_for_region(now: datetime, region_name: str, benchmarks: list[dic
         losers,
         market_news,
         headlines_by_ticker,
+        market_name=region_name,
+        market_status=status_detail,
     )
-    report_lines = report.splitlines()
-    if report_lines:
-        report_lines[0] = f"# Daily market brief — {region_name} — {now:%A, %d %B %Y}"
-    session_line = f"Market session: {status_detail}"
-    session_index = next((index for index, line in enumerate(report_lines) if line.startswith("Market session:")), None)
-    if session_index is None:
-        generated_index = next((index for index, line in enumerate(report_lines) if line.startswith("Generated at ")), 1)
-        report_lines.insert(generated_index + 1, session_line)
-    else:
-        report_lines[session_index] = session_line
-    report = "\n".join(report_lines)
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     path = REPORT_DIR / f"market_brief_{region_code}_{now:%Y-%m-%d}.md"
     path.write_text(report, encoding="utf-8")
     return report, path
+
+
+def render_daily_movers(region_name: str, gainers: pd.DataFrame, losers: pd.DataFrame) -> None:
+    """Show the daily top movers here with links and on-demand supporting analytics."""
+    region_code = MARKET_REGIONS[region_name]["code"]
+    st.markdown('<div class="section-label">Top market movers</div>', unsafe_allow_html=True)
+    st.caption("The screen ranks recent price moves. Headline matches are possible context to investigate, not proof of cause.")
+    columns = st.columns(2, gap="large")
+    for column, title, frame, direction in (
+        (columns[0], "Leading gainers", gainers, "gainer"),
+        (columns[1], "Leading decliners", losers, "decliner"),
+    ):
+        with column:
+            st.markdown(f"### {title}")
+            if frame is None or frame.empty:
+                render_info(f"Yahoo Finance returned no {direction} rows for {region_name} right now. Refresh later to retry.")
+                continue
+            for _, mover in frame.head(5).iterrows():
+                symbol = str(mover.get("symbol") or "").strip().upper()
+                if not symbol:
+                    continue
+                name = str(mover.get("name") or symbol)
+                move = finite_float(mover.get("change_pct"))
+                if move is None:
+                    continue
+                label = f"{symbol} · {name} · {format_percent(move)}"
+                with st.expander(label):
+                    mover_metrics = [("Screen move", format_percent(move))]
+                    price = mover.get("price")
+                    if finite_float(price) is not None:
+                        mover_metrics.insert(0, ("Yahoo screener price", format_number(price)))
+                    detail_columns = st.columns(len(mover_metrics))
+                    for detail_column, (metric_label, metric_value) in zip(detail_columns, mover_metrics):
+                        with detail_column:
+                            st.metric(metric_label, metric_value)
+                    quote_time = pd.to_datetime(mover.get("quote_time"), utc=True, errors="coerce")
+                    if pd.notna(quote_time):
+                        st.caption(f"Yahoo screener quote: {quote_time.tz_convert(TIMEZONE):%d %b · %H:%M London}.")
+                    st.button(
+                        f"View {symbol} company analysis ↗",
+                        key=f"daily_mover_open_{region_code}_{direction}_{symbol}",
+                        use_container_width=True,
+                        on_click=open_company_explorer,
+                        args=(symbol,),
+                    )
+                    show_context = st.checkbox(
+                        "Show price and headline context",
+                        key=f"daily_mover_context_{region_code}_{direction}_{symbol}",
+                    )
+                    if not show_context:
+                        continue
+                    with st.spinner(f"Loading supporting data for {symbol}…"):
+                        metadata = fetch_ticker_metadata(symbol)
+                        history = fetch_history(symbol, period="6mo", adjusted=True)
+                        articles = fetch_ticker_news(symbol, count=8)
+                    if not history.empty and "Close" in history:
+                        close = pd.to_numeric(history["Close"], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+                        indicators = calculate_technical_indicators(history)
+                        latest = indicators.iloc[-1] if not indicators.empty else pd.Series(dtype=float)
+                        metrics: list[tuple[str, str]] = []
+                        if len(close) >= 21:
+                            metrics.append(("20-session return", format_percent((close.iloc[-1] / close.iloc[-21] - 1) * 100)))
+                        rsi = latest.get("RSI_14")
+                        if finite_float(rsi) is not None:
+                            metrics.append(("RSI · 14", format_number(rsi, 1)))
+                        if metadata.get("sector"):
+                            metrics.append(("Sector", str(metadata["sector"])))
+                        if metrics:
+                            metric_columns = st.columns(min(3, len(metrics)))
+                            for metric_column, (metric_label, metric_value) in zip(metric_columns, metrics):
+                                with metric_column:
+                                    render_metric_card(metric_label, metric_value)
+                        st.plotly_chart(market_lens_figure(history, name, 126, []), use_container_width=True, config={"displayModeBar": False, "responsive": True})
+                        bar_date = latest_bar_date(history)
+                        bar_label = f"through {bar_date:%d %b %Y}" if bar_date else "from the returned daily bars"
+                        st.caption(f"Technical values use daily bars {bar_label}. RSI is Wilder's 14-session calculation; it describes momentum, not a forecast.")
+                    else:
+                        render_info("Yahoo Finance returned no daily bars for this ticker. Headline context is shown when available.")
+                    driver, evidence = classify_headlines(articles)
+                    st.markdown(f"**Possible news context:** {escape(driver)}")
+                    if evidence:
+                        for article in evidence[:3]:
+                            render_news_card(article)
+                    else:
+                        st.caption("No recent, timestamped related headline was found in the connected feeds.")
 
 
 def render_daily_brief(region_name: str, now: datetime, benchmarks: list[dict], market_news: list[dict]) -> None:
@@ -1925,10 +1862,14 @@ def render_daily_brief(region_name: str, now: datetime, benchmarks: list[dict], 
     session_state_content_key = f"daily_report_content_{region_code}"
     report_path = REPORT_DIR / f"market_brief_{region_code}_{report_date}.md"
 
-    st.markdown('<div class="section-label">Daily report archive</div>', unsafe_allow_html=True)
-    st.caption(f"A dated report is created the first time this market’s Daily brief is opened each day. A scheduled task can create it while the dashboard is closed.")
+    st.markdown('<div class="eyebrow">Today</div>', unsafe_allow_html=True)
+    st.markdown("## Daily brief")
+    st.caption("A readable daily summary with direct company research links and the evidence behind major moves.")
 
     gainers, losers = fetch_movers("gainers", count=5, region=region_code), fetch_movers("losers", count=5, region=region_code)
+    render_daily_movers(region_name, gainers, losers)
+    st.markdown('<div class="section-label">Written market summary</div>', unsafe_allow_html=True)
+    st.caption("A report is created the first time this region's Daily brief is opened each day. Cloud-hosted report files may not persist after a restart; download reports you want to keep.")
     auto_created = False
     regenerated = False
     if st.session_state.get(session_state_date_key) != report_date:
@@ -1995,12 +1936,12 @@ def main() -> None:
         st.markdown(f'<div class="user-pill"><span class="user-dot"></span><span>{escape(str(user_session["email"]))}</span></div>', unsafe_allow_html=True)
         st.button("Sign out", key="logout_button", use_container_width=True, on_click=logout_user)
         region_name = st.selectbox("Market region", list(MARKET_REGIONS), key="market_region")
-        st.caption("Switches the benchmark, movers and regional headlines.")
+        st.caption("Sets the market indices, price charts and regional headlines.")
         if st.button("↻  Refresh market data", key="refresh_market_data", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
         st.markdown("---")
-        st.caption("Yahoo Finance · FT · BBC Business · official central-bank feeds")
+        st.caption("Yahoo Finance prices · publisher RSS · official central-bank updates")
 
     region_config = MARKET_REGIONS[region_name]
     with st.spinner(f"Loading {region_name} benchmarks and headlines…"):
@@ -2010,17 +1951,23 @@ def main() -> None:
         news_sources = [news_bundle["status"], *fetch_rss_status(region_name)]
     render_header(region_name, now, benchmarks, market_news)
 
-    sections = ["Market pulse", "News desk", "Movers", "Company explorer", "Watchlist", "Portfolio", "Forecast lab", "Daily brief"]
+    sections = ["Markets", "Company explorer", "Portfolio", "Forecast lab", "Daily brief"]
     section_icons = {
-        "Market pulse": "◉",
-        "News desk": "▤",
-        "Movers": "↗",
+        "Markets": "◉",
         "Company explorer": "⌕",
-        "Watchlist": "☆",
         "Portfolio": "▣",
         "Forecast lab": "∿",
         "Daily brief": "≡",
     }
+    previous_page = st.session_state.get("dashboard_section")
+    if previous_page in {"Market pulse", "News desk"}:
+        st.session_state["dashboard_section"] = "Markets"
+    elif previous_page == "Movers":
+        st.session_state["dashboard_section"] = "Daily brief"
+    elif previous_page == "Watchlist":
+        st.session_state["dashboard_section"] = "Company explorer"
+    elif previous_page not in sections:
+        st.session_state["dashboard_section"] = "Markets"
     st.markdown('<div class="nav-overline">Your workspace</div>', unsafe_allow_html=True)
     page = st.radio(
         "Dashboard section",
@@ -2031,16 +1978,10 @@ def main() -> None:
         format_func=lambda section: f"{section_icons[section]}  {section}",
     )
 
-    if page == "Market pulse":
-        render_market_pulse(region_name, benchmarks, market_news)
-    elif page == "News desk":
-        render_news_desk(region_name, market_news, now, news_sources)
-    elif page == "Movers":
-        render_movers(region_name, benchmarks)
+    if page == "Markets":
+        render_market_pulse(region_name, benchmarks, market_news, now, news_sources)
     elif page == "Company explorer":
-        render_company_explorer(region_name)
-    elif page == "Watchlist":
-        render_watchlist(region_name, benchmarks, access_token)
+        render_company_explorer(region_name, access_token)
     elif page == "Portfolio":
         render_portfolio(region_name, access_token)
     elif page == "Forecast lab":
@@ -2049,8 +1990,7 @@ def main() -> None:
         render_daily_brief(region_name, now, benchmarks, market_news)
 
     st.markdown(
-        '<br><div class="small-note">Prices: Yahoo Finance daily bars · News: attributed publisher feeds · '
-        'Headline matches are clues, and model outputs are illustrative scenarios.</div>',
+        '<br><div class="small-note">Data sources and dates are shown beside figures. Headline links are context to verify; simulations are historical scenarios, not promises.</div>',
         unsafe_allow_html=True,
     )
 

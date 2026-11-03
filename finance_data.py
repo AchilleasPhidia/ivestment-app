@@ -5,6 +5,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from html import unescape
+from math import isfinite
 import re
 from typing import Any
 from urllib.request import Request, urlopen
@@ -256,19 +257,18 @@ def _normalize_quote(quote: dict[str, Any]) -> dict[str, Any] | None:
     symbol = _first_value(quote, "symbol", "ticker")
     if not symbol:
         return None
-    price = _first_value(quote, "regularMarketPrice", "intradayprice", "price")
-    previous = _first_value(quote, "regularMarketPreviousClose", "previousClose")
-    pct = _first_value(quote, "percentchange", "regularMarketChangePercent")
-    try:
-        price = float(price) if price is not None else None
-        previous = float(previous) if previous is not None else None
-        pct = float(pct) if pct is not None else None
-    except (TypeError, ValueError):
-        pct = None
-    if price is not None and previous:
+    def finite_number(value: Any) -> float | None:
+        try:
+            number = float(value)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        return number if isfinite(number) else None
+
+    price = finite_number(_first_value(quote, "regularMarketPrice", "intradayprice", "price"))
+    previous = finite_number(_first_value(quote, "regularMarketPreviousClose", "previousClose"))
+    pct = finite_number(_first_value(quote, "percentchange", "regularMarketChangePercent"))
+    if price is not None and previous is not None and previous > 0:
         pct = (price / previous - 1) * 100
-    elif pct is not None and "percentchange" not in quote and abs(pct) < 0.1:
-        pct *= 100
 
     quote_time = _first_value(quote, "regularMarketTime", "marketTime")
     try:
@@ -282,9 +282,9 @@ def _normalize_quote(quote: dict[str, Any]) -> dict[str, Any] | None:
         "price": price,
         "previous_close": previous,
         "change_pct": pct,
-        "volume": pd.to_numeric(_first_value(quote, "regularMarketVolume", "dayvolume", "volume"), errors="coerce"),
-        "average_volume": pd.to_numeric(_first_value(quote, "averageDailyVolume3Month", "avgdailyvol3m"), errors="coerce"),
-        "market_cap": pd.to_numeric(_first_value(quote, "marketCap", "intradaymarketcap"), errors="coerce"),
+        "volume": finite_number(_first_value(quote, "regularMarketVolume", "dayvolume", "volume")),
+        "average_volume": finite_number(_first_value(quote, "averageDailyVolume3Month", "avgdailyvol3m")),
+        "market_cap": finite_number(_first_value(quote, "marketCap", "intradaymarketcap")),
         "quote_time": quote_time,
     }
 
@@ -306,6 +306,12 @@ def fetch_history(symbol: str, period: str = "6mo", adjusted: bool = True) -> pd
             return pd.DataFrame()
         history = history.copy()
         history.index = pd.to_datetime(history.index)
+        for column in history.columns:
+            try:
+                numeric = pd.to_numeric(history[column], errors="coerce")
+            except (TypeError, ValueError):
+                continue
+            history[column] = numeric.replace([float("inf"), float("-inf")], float("nan"))
         return history.dropna(subset=["Close"])
     except Exception:
         return pd.DataFrame()
@@ -420,7 +426,7 @@ def search_tickers(query: str, count: int = 12) -> list[dict[str, str]] | None:
                 {
                     "symbol": symbol,
                     "name": str(quote.get("shortname") or quote.get("longname") or quote.get("shortName") or symbol),
-                    "exchange": str(quote.get("exchDisp") or quote.get("exchange") or "Exchange unavailable"),
+                    "exchange": str(quote.get("exchDisp") or quote.get("exchange") or "").strip(),
                     "quote_type": quote_type or "Security",
                 }
             )
@@ -443,7 +449,7 @@ def fetch_fx_rate(source_currency: str, target_currency: str) -> float | None:
         if history.empty or "Close" not in history:
             continue
         close = pd.to_numeric(history["Close"], errors="coerce").dropna()
-        if close.empty or float(close.iloc[-1]) == 0:
+        if close.empty or not isfinite(float(close.iloc[-1])) or float(close.iloc[-1]) <= 0:
             continue
         rate = float(close.iloc[-1])
         return 1 / rate if inverse else rate

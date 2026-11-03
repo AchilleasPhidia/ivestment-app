@@ -1,6 +1,6 @@
 # Market Brief
 
-A Streamlit market dashboard with regional mover screens, a multi-source news desk, interactive technical charts, historical forecast scoring, and invite-only user accounts. Each account has a private portfolio, watchlist, and forecast history stored in Supabase with row-level security. Yahoo Finance supplies market prices and ticker-level stories. Public RSS feeds add FT and BBC business headlines plus official central-bank announcements for the selected region.
+A Streamlit market dashboard with a compact market and news view, company research, private portfolios, and historical forecast scoring. Each account has a private portfolio, starred-company list, and forecast history stored in Supabase with row-level security. Yahoo Finance supplies market prices and ticker-level stories. Public RSS feeds add FT and BBC business headlines plus official central-bank announcements for the selected region.
 
 ## Start in VS Code
 
@@ -19,13 +19,11 @@ Before running this multi-user version, follow [USER_SETUP.md](USER_SETUP.md) to
 
 ## Dashboard sections
 
-- **Market pulse:** Choose the US, UK, German, French, or Japanese market in the sidebar. The page shows available benchmarks, an approximate local session status, the date of the latest daily price bar, and recent headlines from all configured sources. The market lens can switch between 1M, 3M, 6M, and 1Y and overlay SMA 20/50 and Bollinger Bands. The trend & risk monitor shows a 20-session return, annualised 20-session realised volatility, distance from the one-year high, and RSI (14).
-- **News desk:** Filter combined Yahoo Finance, FT Markets, FT Companies, BBC Business, and regional central-bank headlines by website, publisher, theme, and age, then search the title or short RSS summary. The source dropdown includes a link to open each publisher. Story cards identify editorial coverage versus official announcements. FT RSS supplies headlines and summaries, not the full subscriber article; open FT to read it.
-- **Movers:** View Yahoo’s US day-gainer/day-loser lists or regional screens for the selected market. Each move is compared with the selected market index. Load a stock’s deeper context to see recent headlines, relative performance against its sector ETF where mapped, and trading volume compared with the prior 20 daily bars.
-- **Watchlist:** Edit comma-separated Yahoo symbols. Each user's list is saved privately in Supabase. The page shows the latest available daily price, daily and 20-session returns, market-relative move, RSI, relative volume, and price date.
+- **Markets:** Choose the US, UK, German, French, or Japanese market in the sidebar. The page combines regional benchmark cards, an approximate local session status, the latest daily bar date, a price chart, trend and risk measures, and filtered headlines. Filter the combined Yahoo Finance, FT Markets, FT Companies, BBC Business, and regional central-bank coverage by publisher, theme, and age. FT RSS supplies story metadata, not the full subscriber article; open FT to read it.
+- **Company explorer:** Search for a company or exact Yahoo Finance ticker, inspect the price chart, technical indicators, profile and related headlines, and tap the star to add or remove it from your private watchlist. Starred companies are available from the quick selector at the top of this page.
 - **Portfolio:** Record dated buys and sells with quantities, per-share prices, fees, and notes. Separate purchase lots are retained and FIFO accounting calculates the remaining cost basis and realised gains. The dashboard shows portfolio value over time, holdings and sector allocation, daily and unrealised P&L, relative performance versus the selected market index, and a deep dive for each stock with price/indicator charts, company metrics, headlines, and bootstrap or EWMA scenario estimates with a historical scorecard. Each account's transaction ledger is private to that user. The portfolio value chart marks open shares to historical prices and excludes cash, dividends, and sale proceeds; see the on-screen note.
 - **Forecast lab:** Explore adjusted-price candlesticks with SMA 20/50, Bollinger Bands, MACD, RSI, ATR, and drawdown. The Monte Carlo view offers empirical historical-return bootstrapping or an EWMA-volatility model. The rolling scorecard compares the point-return estimate with a no-change baseline using only earlier observations. Saved scenarios and their later outcomes are private to the signed-in user.
-- **Daily brief:** The first visit to this section each day creates a Markdown report. Reports are archived by market and date in `reports/`. Select an archived report to view or download it.
+- **Daily brief:** Review the top Yahoo Finance gainers and decliners. Each ticker opens Company Explorer, and an optional detail control loads the price trend, technical context and related timestamped headlines. The first visit to this section each day also creates a Markdown summary. Reports are archived by market and date in `reports/`; download any report you want to keep.
 
 ## Weekday report schedule
 
@@ -43,14 +41,14 @@ The report archive and local portfolio files are excluded from Git by `.gitignor
 
 - **SMA:** mean of the most recent 20 or 50 closes.
 - **Bollinger Bands:** 20-session mean plus or minus two rolling standard deviations.
-- **RSI (14):** relative strength index based on exponentially smoothed gains and losses.
+- **RSI (14):** Wilder's relative strength index, seeded with the mean of the first 14 gains and losses and then smoothed recursively. A flat 14-session series is assigned RSI 50.
 - **MACD:** EMA(12) minus EMA(26), with a 9-session EMA signal line.
-- **ATR (14):** exponentially smoothed true range.
+- **ATR (14):** Wilder-smoothed true range, seeded with the mean of the first 14 true ranges.
 - **Historical bootstrap:** samples daily log returns from the selected lookback with replacement, then compounds simulated paths.
 - **EWMA volatility:** estimates volatility with decay λ = 0.94 and simulates normal daily innovations around the recent average log return.
-- **Forecast scorecard:** runs a rolling point-return estimate over recent history and compares its absolute price error and directional accuracy with a no-change price baseline.
+- **Forecast scorecard:** runs a rolling mean-log-return point estimate and compares mean absolute percentage error (MAPE) and directional accuracy with a no-change price baseline. Each score uses only prices available at that forecast date.
 - **Portfolio lots:** buy fees are included in lot basis; sell fees reduce proceeds; sells consume the oldest available shares first (FIFO). The scenario view rescales adjusted historical-return scenarios to the latest quote and applies current holdings and FX for indicative position values.
-- **Money-weighted XIRR:** discounts dated buy/sell cash flows and the current open-position value to solve for the annualised return. It is left blank when transaction dates or purchase costs are unknown and excludes dividends.
+- **Money-weighted XIRR:** discounts dated buy/sell cash flows and the current open-position value to solve for the annualised return. It is left blank when dates or costs are unknown or the cash-flow pattern has multiple sign changes (which can produce multiple roots). It excludes dividends.
 
 These statistics describe assumptions and historical behaviour. They are not calibrated guarantees or investment recommendations. Moving-average and RSI thresholds are descriptive conventions. Headline matches are leads to review, not proof of why a share price moved.
 

@@ -254,7 +254,7 @@ def calculate_xirr(
     current_shares: float,
     as_of: object,
 ) -> float | None:
-    """Estimate annualised money-weighted return from dated trades and current value."""
+    """Estimate annualised money-weighted return when cash flows have one sign change."""
     transactions = normalize_transactions(frame)
     rows = transactions[transactions["ticker"] == ticker.strip().upper()].to_dict(orient="records")
     if not rows or any(not row["date"] for row in rows):
@@ -275,6 +275,12 @@ def calculate_xirr(
     if current_shares > 1e-8:
         cashflows.append((pd.Timestamp(as_of), float(current_shares) * float(current_price)))
     if not any(amount < 0 for _, amount in cashflows) or not any(amount > 0 for _, amount in cashflows):
+        return None
+
+    signs = [1 if amount > 0 else -1 for _, amount in sorted(cashflows, key=lambda item: item[0]) if amount != 0]
+    if sum(left != right for left, right in zip(signs, signs[1:])) > 1:
+        # With multiple sign changes, XIRR can have multiple roots. This
+        # bisection solver would otherwise return an arbitrary one.
         return None
 
     start_date = min(day for day, _ in cashflows)

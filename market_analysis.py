@@ -53,12 +53,36 @@ def classify_headlines(articles: list[dict[str, Any]]) -> tuple[str, list[dict[s
     return f"Recent headlines point to {scores[0][1].lower()}.", recent
 
 
+def _wilder_smooth(values: pd.Series, period: int) -> pd.Series:
+    """Wilder's smoothed moving average, seeded with a simple average."""
+    raw = pd.to_numeric(values, errors="coerce").to_numpy(dtype=float)
+    smoothed = np.full(raw.shape, np.nan, dtype=float)
+    run_values: list[float] = []
+    average = np.nan
+    for index, value in enumerate(raw):
+        if not np.isfinite(value):
+            run_values = []
+            average = np.nan
+            continue
+        if not np.isfinite(average):
+            run_values.append(float(value))
+            if len(run_values) < period:
+                continue
+            average = float(np.mean(run_values[-period:]))
+        else:
+            average = ((period - 1) * average + float(value)) / period
+        smoothed[index] = average
+    return pd.Series(smoothed, index=values.index, name=values.name)
+
+
 def calculate_technical_indicators(history: pd.DataFrame) -> pd.DataFrame:
     """Add moving averages, Bollinger Bands, RSI, MACD, ATR, and drawdown."""
     if history is None or history.empty or "Close" not in history:
         return pd.DataFrame()
     frame = history.copy()
-    close = pd.to_numeric(frame["Close"], errors="coerce")
+    close = pd.to_numeric(frame["Close"], errors="coerce").replace([np.inf, -np.inf], np.nan)
+    close = close.where(close > 0)
+    frame["Close"] = close
 
     frame["SMA_20"] = close.rolling(20, min_periods=20).mean()
     frame["SMA_50"] = close.rolling(50, min_periods=50).mean()
@@ -69,12 +93,13 @@ def calculate_technical_indicators(history: pd.DataFrame) -> pd.DataFrame:
     frame["MACD_histogram"] = frame["MACD"] - frame["MACD_signal"]
 
     delta = close.diff()
-    gain = delta.clip(lower=0).ewm(alpha=1 / 14, adjust=False, min_periods=14).mean()
-    loss = -delta.clip(upper=0).ewm(alpha=1 / 14, adjust=False, min_periods=14).mean()
+    gain = _wilder_smooth(delta.clip(lower=0), 14)
+    loss = _wilder_smooth(-delta.clip(upper=0), 14)
     relative_strength = gain / loss.replace(0, np.nan)
     frame["RSI_14"] = 100 - 100 / (1 + relative_strength)
     frame.loc[(loss == 0) & (gain > 0), "RSI_14"] = 100
     frame.loc[(gain == 0) & (loss > 0), "RSI_14"] = 0
+    frame.loc[(gain == 0) & (loss == 0) & gain.notna() & loss.notna(), "RSI_14"] = 50
 
     rolling_mid = close.rolling(20, min_periods=20).mean()
     rolling_std = close.rolling(20, min_periods=20).std(ddof=0)
@@ -83,19 +108,20 @@ def calculate_technical_indicators(history: pd.DataFrame) -> pd.DataFrame:
     frame["BB_lower"] = rolling_mid - 2 * rolling_std
 
     if all(column in frame.columns for column in ("High", "Low")):
-        high = pd.to_numeric(frame["High"], errors="coerce")
-        low = pd.to_numeric(frame["Low"], errors="coerce")
+        high = pd.to_numeric(frame["High"], errors="coerce").replace([np.inf, -np.inf], np.nan)
+        low = pd.to_numeric(frame["Low"], errors="coerce").replace([np.inf, -np.inf], np.nan)
         previous_close = close.shift(1)
         true_range = pd.concat(
             [(high - low), (high - previous_close).abs(), (low - previous_close).abs()],
             axis=1,
         ).max(axis=1)
-        frame["ATR_14"] = true_range.ewm(alpha=1 / 14, adjust=False, min_periods=14).mean()
+        true_range = true_range.where(true_range >= 0)
+        frame["ATR_14"] = _wilder_smooth(true_range, 14)
 
     frame["Drawdown"] = close / close.cummax() - 1
     if "Volume" in frame:
-        volume = pd.to_numeric(frame["Volume"], errors="coerce")
-        frame["Volume_SMA_20"] = volume.rolling(20, min_periods=10).mean()
+        volume = pd.to_numeric(frame["Volume"], errors="coerce").replace([np.inf, -np.inf], np.nan)
+        frame["Volume_SMA_20"] = volume.rolling(20, min_periods=20).mean()
     return frame
 
 
@@ -111,13 +137,14 @@ def calculate_forecast(
     """Simulate price paths from resampled returns or an EWMA-volatility model."""
     if history is None or history.empty or "Close" not in history:
         return None
-    close = pd.to_numeric(history["Close"], errors="coerce").dropna()
-    if len(close) < max(lookback // 2, 30) or (close <= 0).any():
+    close = pd.to_numeric(history["Close"], errors="coerce").replace([np.inf, -np.inf], np.nan)
+    close = close.where(close > 0).dropna()
+    lookback = max(20, int(lookback))
+    simulations = max(100, int(simulations))
+    if len(close) < lookback + 1:
         return None
 
-    returns = np.diff(np.log(close.to_numpy(dtype=float)))[-int(lookback):]
-    if len(returns) < 20:
-        return None
+    returns = np.diff(np.log(close.to_numpy(dtype=float)))[-lookback:]
     horizon = max(1, int(horizon))
     confidence = min(max(float(confidence), 0.5), 0.99)
     rng = np.random.default_rng(seed)
@@ -151,7 +178,7 @@ def calculate_forecast(
         "median": float(np.median(terminal)),
         "lower": float(np.quantile(terminal, quantile_tail)),
         "upper": float(np.quantile(terminal, 1 - quantile_tail)),
-        "expected_return": (float(np.median(terminal)) / spot - 1) * 100,
+        "median_return": (float(np.median(terminal)) / spot - 1) * 100,
         "annualized_vol": daily_volatility * sqrt(252) * 100,
         "daily_drift": daily_drift,
         "daily_volatility": daily_volatility,
@@ -176,9 +203,13 @@ def evaluate_forecast(
     """Rolling out-of-sample comparison against a no-change price baseline."""
     if history is None or history.empty or "Close" not in history:
         return None
-    close = pd.to_numeric(history["Close"], errors="coerce").dropna().to_numpy(dtype=float)
+    close_series = pd.to_numeric(history["Close"], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+    if (close_series <= 0).any():
+        return None
+    close = close_series.to_numpy(dtype=float)
     horizon = max(1, int(horizon))
-    start = max(int(lookback) + 1, len(close) - int(test_days) - horizon)
+    lookback = max(20, int(lookback))
+    start = max(int(lookback), len(close) - int(test_days) - horizon)
     end = len(close) - horizon
     if end <= start:
         return None
@@ -190,7 +221,7 @@ def evaluate_forecast(
         observed = close[origin]
         actual = close[origin + horizon]
         train = np.diff(np.log(close[max(0, origin - lookback):origin + 1]))
-        if len(train) < max(20, lookback // 2):
+        if len(train) < lookback:
             continue
         predicted = observed * exp(float(np.mean(train)) * horizon)
         model_errors.append(abs(predicted / actual - 1) * 100)
