@@ -123,6 +123,9 @@ def _parse_article(raw: dict[str, Any], queried_symbol: str | None = None) -> di
     for item_ticker in related:
         if isinstance(item_ticker, dict) and item_ticker.get("symbol"):
             symbols.append(str(item_ticker["symbol"]).upper())
+    for item_ticker in item.get("relatedTickers", []) or []:
+        if item_ticker:
+            symbols.append(str(item_ticker).upper())
     if queried_symbol:
         symbols.append(queried_symbol.upper())
 
@@ -135,7 +138,7 @@ def _parse_article(raw: dict[str, Any], queried_symbol: str | None = None) -> di
         "published": published_at,
         "published_label": published_at.astimezone(london_tz).strftime("%d %b · %H:%M") if published_at else "Recent",
         "symbols": sorted(set(symbols)),
-        "source_kind": "Aggregated feed",
+        "source_kind": "Yahoo Finance",
     }
 
 
@@ -385,6 +388,47 @@ def fetch_ticker_metadata(symbol: str) -> dict[str, Any]:
         return {}
 
 
+@st.cache_data(ttl=1800, show_spinner=False)
+def search_tickers(query: str, count: int = 12) -> list[dict[str, str]] | None:
+    """Search Yahoo Finance and return selectable equity and ETF matches.
+
+    ``None`` means the search service failed; an empty list means the search
+    completed successfully but found no supported instruments.
+    """
+    query = str(query or "").strip()
+    if len(query) < 2:
+        return []
+    try:
+        search = yf.Search(
+            query,
+            max_results=int(count),
+            news_count=0,
+            lists_count=0,
+            include_cb=False,
+            timeout=10,
+        )
+        allowed_types = {"EQUITY", "ETF", "MUTUALFUND"}
+        results: list[dict[str, str]] = []
+        seen: set[str] = set()
+        for quote in search.quotes:
+            symbol = str(quote.get("symbol") or "").strip().upper()
+            quote_type = str(quote.get("quoteType") or "").upper()
+            if not symbol or symbol in seen or (quote_type and quote_type not in allowed_types):
+                continue
+            seen.add(symbol)
+            results.append(
+                {
+                    "symbol": symbol,
+                    "name": str(quote.get("shortname") or quote.get("longname") or quote.get("shortName") or symbol),
+                    "exchange": str(quote.get("exchDisp") or quote.get("exchange") or "Exchange unavailable"),
+                    "quote_type": quote_type or "Security",
+                }
+            )
+        return results[: int(count)]
+    except Exception:
+        return None
+
+
 @st.cache_data(ttl=900, show_spinner=False)
 def fetch_fx_rate(source_currency: str, target_currency: str) -> float | None:
     """Return units of the target currency for one unit of the source currency."""
@@ -407,36 +451,88 @@ def fetch_fx_rate(source_currency: str, target_currency: str) -> float | None:
 
 
 @st.cache_data(ttl=900, show_spinner=False)
+def _fetch_yahoo_search_news(query: str, count: int) -> dict[str, Any]:
+    """Fetch Yahoo Finance search headlines and preserve a visible health status."""
+    query = str(query or "").strip()
+    if not query:
+        return {"articles": [], "status": "Unavailable"}
+    try:
+        search = yf.Search(
+            query,
+            max_results=1,
+            news_count=int(count),
+            lists_count=0,
+            include_cb=False,
+            timeout=10,
+        )
+        raw_items = search.news or []
+    except Exception:
+        return {"articles": [], "status": "Unavailable"}
+    parsed = [_parse_article(item, queried_symbol=query if len(query) <= 16 else None) for item in raw_items if isinstance(item, dict)]
+    articles = _dedupe_sort([article for article in parsed if article])
+    return {"articles": articles, "status": "Connected" if articles else "Connected · no related stories"}
+
+
+@st.cache_data(ttl=900, show_spinner=False)
 def fetch_ticker_news(symbol: str, count: int = 8) -> list[dict[str, Any]]:
     symbol = symbol.strip().upper()
     if not symbol:
         return []
-    try:
-        raw_items = yf.Ticker(symbol).get_news(count=count, tab="news") or []
-    except Exception:
-        return []
-    parsed = [_parse_article(item, queried_symbol=symbol) for item in raw_items if isinstance(item, dict)]
-    return _dedupe_sort([article for article in parsed if article])
+    return _fetch_yahoo_search_news(symbol, count).get("articles", [])
 
 
 @st.cache_data(ttl=900, show_spinner=False)
+def fetch_market_news_bundle(
+    symbols: tuple[str, ...] = MARKET_NEWS_SYMBOLS,
+    per_symbol: int = 8,
+    region_name: str = DEFAULT_REGION,
+) -> dict[str, Any]:
+    """Combine Yahoo Finance search headlines and attributed public RSS feeds."""
+    articles: list[dict[str, Any]] = []
+    statuses: list[str] = []
+    for symbol in symbols:
+        result = _fetch_yahoo_search_news(symbol, per_symbol)
+        articles.extend(result["articles"])
+        statuses.append(result["status"])
+
+    # Symbol-specific searches can be quiet for broad indices. Add a regional
+    # market query when they return no stories so Yahoo's news desk still has
+    # a chance to surface general market coverage.
+    if not articles:
+        regional_queries = {
+            "United States": "US stock market",
+            "United Kingdom": "UK stock market",
+            "Germany": "German stock market",
+            "France": "French stock market",
+            "Japan": "Japan stock market",
+        }
+        fallback = _fetch_yahoo_search_news(regional_queries.get(region_name, "stock market"), max(per_symbol, 8))
+        articles.extend(fallback["articles"])
+        statuses.append(fallback["status"])
+
+    for article in fetch_rss_news(region_name):
+        articles.append(article)
+    yahoo_articles = [article for article in _dedupe_sort(articles) if article.get("source_kind") == "Yahoo Finance"]
+    failed = sum(status == "Unavailable" for status in statuses)
+    yahoo_status = "Connected" if yahoo_articles and not failed else (
+        "Partial" if yahoo_articles else "Unavailable" if failed == len(statuses) else "Connected · no related stories"
+    )
+    return {
+        "articles": _dedupe_sort(articles),
+        "status": {
+            "publisher": "Yahoo Finance",
+            "kind": "News search",
+            "status": yahoo_status,
+            "stories": len(yahoo_articles),
+            "site_url": "https://finance.yahoo.com/news/",
+        },
+    }
+
+
 def fetch_market_news(
     symbols: tuple[str, ...] = MARKET_NEWS_SYMBOLS,
     per_symbol: int = 8,
     region_name: str = DEFAULT_REGION,
 ) -> list[dict[str, Any]]:
-    """Combine Yahoo market headlines with public publisher RSS metadata."""
-    articles: list[dict[str, Any]] = []
-    for symbol in symbols:
-        try:
-            raw_items = yf.Ticker(symbol).get_news(count=per_symbol, tab="news") or []
-        except Exception:
-            continue
-        for item in raw_items:
-            if isinstance(item, dict):
-                parsed = _parse_article(item, queried_symbol=symbol)
-                if parsed:
-                    articles.append(parsed)
-    for article in fetch_rss_news(region_name):
-        articles.append(article)
-    return _dedupe_sort(articles)
+    """Compatibility wrapper returning only the combined market headlines."""
+    return fetch_market_news_bundle(symbols, per_symbol, region_name)["articles"]
