@@ -101,12 +101,12 @@ def apply_styles() -> None:
         """
         <style>
         @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
-        :root { color-scheme:dark; --ink:#f1f5ff; --muted:#95a4bb; --line:rgba(166,184,218,.13); --panel:#111a2b; --cyan:#62e5ec; --violet:#9b8cff; --lime:#c4f59a; --rose:#ff8e9b; }
+        :root { color-scheme:dark; --ink:#f1f5ff; --muted:#95a4bb; --line:rgba(166,184,218,.13); --panel:#111a2b; --cyan:#62e5ec; --violet:#9b8cff; --amber:#ffb36b; --rose:#ff8e9b; }
         * { box-sizing:border-box; }
         html, body, [class*="css"] { font-family:'Manrope',sans-serif; }
         .stApp { color:var(--ink); background:radial-gradient(ellipse at 82% -14%,rgba(93,79,190,.25),transparent 34%),radial-gradient(ellipse at 5% 18%,rgba(27,153,167,.12),transparent 30%),#080d17; }
         [data-testid="stHeader"] { background:transparent; }
-        [data-testid="stDecoration"] { background:linear-gradient(90deg,var(--cyan),var(--violet),var(--lime)); height:2px; }
+        [data-testid="stDecoration"] { background:linear-gradient(90deg,var(--cyan),var(--violet),var(--amber)); height:2px; }
         [data-testid="stSidebar"] { background:linear-gradient(180deg,#0d1422,#0b111b 72%); border-right:1px solid var(--line); }
         [data-testid="stSidebar"] > div:first-child { padding-top:1.15rem; }
         .side-brand { display:flex; align-items:center; gap:.72rem; margin:.15rem 0 1.15rem; }
@@ -114,7 +114,7 @@ def apply_styles() -> None:
         .side-brand-name { color:#edf4ff; font:700 .83rem 'Space Grotesk',sans-serif; letter-spacing:.12em; }
         .side-brand-sub { display:block; color:#8595ad; margin-top:2px; font:.56rem 'DM Mono',monospace; letter-spacing:.13em; }
         .user-pill { display:flex; align-items:center; gap:.55rem; margin:.55rem 0 .85rem; padding:.55rem .7rem; color:#aab8cc; border:1px solid var(--line); border-radius:11px; background:rgba(6,11,19,.38); font-size:.73rem; overflow-wrap:anywhere; }
-        .user-dot { width:7px; height:7px; flex:0 0 7px; border-radius:50%; background:var(--lime); box-shadow:0 0 10px rgba(196,245,154,.6); }
+        .user-dot { width:7px; height:7px; flex:0 0 7px; border-radius:50%; background:var(--amber); box-shadow:0 0 10px rgba(255,179,107,.6); }
         .st-key-logout_button button { color:#c1ccdc; background:rgba(255,255,255,.035); border-color:rgba(166,184,218,.14); box-shadow:none; }
         .st-key-logout_button button:hover { color:#fff; background:rgba(255,142,155,.1); border-color:rgba(255,142,155,.45); }
         .nav-overline { color:#8090a9; margin:.35rem 0 .35rem; font:.61rem 'DM Mono',monospace; letter-spacing:.15em; text-transform:uppercase; }
@@ -131,8 +131,8 @@ def apply_styles() -> None:
         .hero-kicker { color:#aebdd2; font:.66rem 'DM Mono',monospace; letter-spacing:.18em; text-transform:uppercase; }
         .session-badge { display:inline-flex; align-items:center; gap:.48rem; border:1px solid var(--line); border-radius:999px; padding:.38rem .72rem; background:rgba(8,13,23,.38); color:#bdc9da; font:.69rem 'DM Mono',monospace; white-space:nowrap; }
         .session-dot { width:7px; height:7px; display:inline-block; border-radius:50%; background:var(--violet); box-shadow:0 0 12px currentColor; }
-        .session-badge.open .session-dot { background:var(--lime); color:var(--lime); animation:pulse 2s infinite; }
-        @keyframes pulse { 50% { box-shadow:0 0 4px 3px rgba(196,245,154,.13); } }
+        .session-badge.open .session-dot { background:var(--amber); color:var(--amber); animation:pulse 2s infinite; }
+        @keyframes pulse { 50% { box-shadow:0 0 4px 3px rgba(255,179,107,.13); } }
         .hero-title { color:var(--ink); font:700 clamp(2.15rem,4vw,3.35rem)/1.03 'Space Grotesk','Manrope',sans-serif; letter-spacing:-.075em; margin:.9rem 0 0; }
         .hero-title .hero-accent { background:linear-gradient(95deg,var(--cyan),#a9a1ff 78%); -webkit-background-clip:text; background-clip:text; color:transparent; }
         .hero-sub { color:#a7b5ca; font-size:.91rem; line-height:1.65; margin:.6rem 0 1.1rem; max-width:780px; }
@@ -155,7 +155,7 @@ def apply_styles() -> None:
         .news-card a:hover { color:var(--cyan) !important; }
         .small-note { color:#95a4bb; font-size:.76rem; line-height:1.58; }
         div[data-testid="stDataFrame"] { overflow:hidden; border:1px solid var(--line); border-radius:14px; background:rgba(15,23,39,.7); }
-        .stButton button,.stDownloadButton button,.stLinkButton button { min-height:40px; color:#08131c; font-weight:800; background:linear-gradient(105deg,var(--cyan),#a5e9dd 48%,#b7f39a); border:1px solid rgba(165,245,230,.68); border-radius:11px; box-shadow:0 5px 20px rgba(47,205,208,.12); transition:transform .16s ease,filter .16s ease,box-shadow .16s ease; }
+        .stButton button,.stDownloadButton button,.stLinkButton button { min-height:40px; color:#08131c; font-weight:800; background:linear-gradient(105deg,var(--cyan),#a5e9dd 44%,var(--amber)); border:1px solid rgba(165,245,230,.68); border-radius:11px; box-shadow:0 5px 20px rgba(47,205,208,.12); transition:transform .16s ease,filter .16s ease,box-shadow .16s ease; }
         .stButton button:hover,.stDownloadButton button:hover,.stLinkButton button:hover { color:#071117; border-color:#d3fff3; filter:brightness(1.08); transform:translateY(-1px); box-shadow:0 8px 26px rgba(47,205,208,.2); }
         .stButton button:focus-visible,.stDownloadButton button:focus-visible { outline:2px solid var(--violet); outline-offset:2px; }
         div[data-testid="stMetric"] { padding:12px 15px; border:1px solid var(--line); border-radius:15px; background:linear-gradient(145deg,rgba(21,32,52,.95),rgba(13,20,34,.95)); box-shadow:0 8px 25px rgba(0,0,0,.1); }
@@ -242,7 +242,7 @@ def format_percent(value: object) -> str:
 def render_metric_card(label: str, value: str, change: float | None = None, detail: str = "") -> None:
     change_html = ""
     if change is not None and pd.notna(change):
-        color = "#c4f59a" if change >= 0 else "#ff8e9b"
+        color = "#ffb36b" if change >= 0 else "#ff8e9b"
         change_html = f'<div class="metric-change" style="color:{color}">{format_percent(change)} today</div>'
     detail_html = f'<div class="small-note">{escape(detail)}</div>' if detail else ""
     st.markdown(
@@ -489,7 +489,7 @@ def market_lens_figure(history: pd.DataFrame, title: str, visible_sessions: int,
     if "SMA 20" in overlays and "SMA_20" in indicators:
         figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_20"], name="SMA 20", line={"color": "#9b8cff", "width": 1.3}))
     if "SMA 50" in overlays and "SMA_50" in indicators:
-        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_50"], name="SMA 50", line={"color": "#c4f59a", "width": 1.3}))
+        figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_50"], name="SMA 50", line={"color": "#ffb36b", "width": 1.3}))
     figure.update_layout(
         height=390,
         margin={"l": 10, "r": 12, "t": 68, "b": 24},
@@ -572,7 +572,7 @@ def render_news_desk(region_name: str, market_news: list[dict], now: datetime, f
             x=topic_counts.values,
             y=topic_counts.index,
             orientation="h",
-            marker={"color": ["#62e5ec", "#9b8cff", "#d38cff", "#c4f59a", "#6dd9da", "#ff8e9b"][:len(topic_counts)]},
+            marker={"color": ["#62e5ec", "#9b8cff", "#d38cff", "#ffb36b", "#6dd9da", "#ff8e9b"][:len(topic_counts)]},
             text=topic_counts.values,
             textposition="outside",
             hovertemplate="%{y}: %{x} headlines<extra></extra>",
@@ -1024,12 +1024,12 @@ def forecast_figure(history: pd.DataFrame, forecast: dict) -> go.Figure:
         col=1,
     )
     figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_20"], name="SMA 20", line={"color": "#9b8cff", "width": 1.2}), row=1, col=1)
-    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_50"], name="SMA 50", line={"color": "#c4f59a", "width": 1.2}), row=1, col=1)
+    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["SMA_50"], name="SMA 50", line={"color": "#ffb36b", "width": 1.2}), row=1, col=1)
 
     hist_colors = ["#62e5ec" if value >= 0 else "#ff8e8e" for value in indicators["MACD_histogram"].fillna(0)]
     figure.add_trace(go.Bar(x=indicators.index, y=indicators["MACD_histogram"], name="MACD histogram", marker_color=hist_colors), row=2, col=1)
     figure.add_trace(go.Scatter(x=indicators.index, y=indicators["MACD"], name="MACD", line={"color": "#9b8cff", "width": 1.3}), row=2, col=1)
-    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["MACD_signal"], name="Signal", line={"color": "#c4f59a", "width": 1.2}), row=2, col=1)
+    figure.add_trace(go.Scatter(x=indicators.index, y=indicators["MACD_signal"], name="Signal", line={"color": "#ffb36b", "width": 1.2}), row=2, col=1)
     figure.add_trace(go.Scatter(x=indicators.index, y=indicators["RSI_14"], name="RSI 14", line={"color": "#d38cff", "width": 1.5}), row=3, col=1)
     for y_value in (30, 70):
         figure.add_hline(y=y_value, line_dash="dot", line_color="rgba(145,162,182,.45)", row=3, col=1)
@@ -1710,7 +1710,7 @@ def render_portfolio(region_name: str, access_token: str) -> None:
         allocation_col, sector_col = st.columns(2, gap="large")
         with allocation_col:
             if allocations:
-                figure = go.Figure(go.Pie(labels=[f"{item['ticker']} · {item['name']}" for item in allocations], values=[item["market_value_base"] for item in allocations], hole=.66, marker={"colors": ["#62e5ec", "#9b8cff", "#c4f59a", "#d38cff", "#ff8e8e", "#6dd9da", "#ff8e9b", "#a5e7b3"]}))
+                figure = go.Figure(go.Pie(labels=[f"{item['ticker']} · {item['name']}" for item in allocations], values=[item["market_value_base"] for item in allocations], hole=.66, marker={"colors": ["#62e5ec", "#9b8cff", "#ffb36b", "#d38cff", "#ff8e8e", "#6dd9da", "#ff8e9b", "#ffc68e"]}))
                 figure.update_layout(
                     height=410,
                     margin={"l": 8, "r": 8, "t": 62, "b": 76},
