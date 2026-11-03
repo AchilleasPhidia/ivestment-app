@@ -145,6 +145,8 @@ def apply_styles() -> None:
         .metric-value { color:var(--ink); font:600 1.48rem 'Space Grotesk',sans-serif; letter-spacing:-.045em; margin-top:8px; overflow-wrap:anywhere; }
         .metric-change { font:.72rem 'DM Mono',monospace; margin-top:5px; }
         .panel { padding:19px 21px; border:1px solid var(--line); border-radius:18px; background:linear-gradient(145deg,rgba(17,27,45,.97),rgba(12,19,32,.97)); box-shadow:0 12px 34px rgba(0,0,0,.13); }
+        .info-note { display:flex; align-items:flex-start; gap:.65rem; padding:.78rem .9rem; border:1px solid rgba(255,179,107,.22); border-left:3px solid var(--amber); border-radius:12px; background:linear-gradient(105deg,rgba(255,179,107,.1),rgba(17,27,45,.9) 62%); color:#f2cda8; font-size:.82rem; line-height:1.55; }
+        .info-note-mark { display:grid; place-items:center; flex:0 0 19px; width:19px; height:19px; margin-top:1px; border:1px solid rgba(255,179,107,.38); border-radius:50%; color:var(--amber); font:500 .7rem 'DM Mono',monospace; }
         .news-card { padding:14px 14px 15px; margin:0 0 .5rem; border:1px solid rgba(166,184,218,.1); border-left:2px solid rgba(98,229,236,.52); border-radius:12px; background:linear-gradient(115deg,rgba(16,26,43,.77),rgba(13,20,34,.45)); transition:transform .18s ease,border-color .18s ease,background .18s ease; }
         .news-card:last-child { margin-bottom:0; }
         .news-card:hover { transform:translateX(2px); border-color:rgba(98,229,236,.28); border-left-color:var(--cyan); background:rgba(26,39,61,.74); }
@@ -254,6 +256,13 @@ def render_metric_card(label: str, value: str, change: float | None = None, deta
 
 def render_empty(message: str) -> None:
     st.markdown(f'<div class="panel small-note">{escape(message)}</div>', unsafe_allow_html=True)
+
+
+def render_info(message: str) -> None:
+    st.markdown(
+        f'<div class="info-note"><span class="info-note-mark">i</span><span>{escape(message)}</span></div>',
+        unsafe_allow_html=True,
+    )
 
 
 def open_company_explorer(symbol: str) -> None:
@@ -900,7 +909,7 @@ def render_company_explorer(region_name: str) -> None:
         if len(query) < 2:
             st.caption("Type at least two characters to load matching companies in the dropdown.")
             return
-        st.info("No matching companies found. Try a company name or its Yahoo Finance symbol.")
+        render_info("No matching companies found. Try a company name or its Yahoo Finance symbol.")
         return
     else:
         details = {match["symbol"]: match for match in matches}
@@ -1145,7 +1154,7 @@ def render_forecast_lab(access_token: str) -> None:
         if was_added:
             st.success("Forecast saved. Its outcome will be checked when the target date has a price bar.")
         else:
-            st.info("This ticker, date, horizon, and model combination is already being tracked.")
+            render_info("This ticker, date, horizon, and model combination is already being tracked.")
 
     tracked = update_forecast_outcomes(ticker, history, access_token)
     resolved = [item for item in tracked if item.get("actual") is not None]
@@ -1541,7 +1550,7 @@ def render_portfolio(region_name: str, access_token: str) -> None:
         elif ticker_matches is None:
             st.warning("Yahoo Finance ticker search is temporarily unavailable. Try again later; your search text will not be recorded as a ticker.")
         elif not ticker_matches:
-            st.info("No matching stocks or funds found. Try a company name or its Yahoo Finance symbol, such as LLOY.L.")
+            render_info("No matching stocks or funds found. Try a company name or its Yahoo Finance symbol, such as LLOY.L.")
         else:
             ticker_details = {match["symbol"]: match for match in ticker_matches}
             ticker = st.selectbox(
@@ -1685,7 +1694,7 @@ def render_portfolio(region_name: str, access_token: str) -> None:
     if day_total is not None:
         st.caption(f"Daily change across open positions: {format_number(day_total)} {base_currency} · based on latest daily close versus previous close.")
     if not all_market_values:
-        st.info("Some holding prices or FX rates are unavailable, so portfolio-wide base-currency totals and charts are incomplete.")
+        render_info("Some holding prices or FX rates are unavailable, so portfolio-wide base-currency totals and charts are incomplete.")
     if not all_open_costs_known:
         st.caption("An opening balance has no recorded purchase cost. Add or edit its cost in the transaction ledger before relying on portfolio P&L.")
     if realized_total is None and realized_rows:
